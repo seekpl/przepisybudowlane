@@ -1,0 +1,108 @@
+/* Komponenty identyfikacji „Przepisy budowlane” (components/bundle.css z systemu) — wartości z tokenów. */
+body { margin: 0; background: var(--surface); color: var(--ink); font-family: var(--font-sans); -webkit-text-size-adjust: 100%; }
+.pb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pb-muted { color: var(--ink-muted); }
+.pb-icon { flex: none; display: inline-block; vertical-align: middle; }
+:where(.pb-card, .pb-wizard, .pb-cite, .pb-explain, .pb-notice, .pb-law) p { margin: 0; }
+:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-width); }
+
+/* Przyciski */
+.pb-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); border-radius: var(--radius-md); border: 1px solid transparent; font: 500 16px/24px var(--font-sans); cursor: pointer; text-decoration: none; }
+.pb-btn.pb-simple { min-height: var(--control-simple); min-width: var(--control-simple); padding: 0 var(--space-4); }
+.pb-btn.pb-expert { min-height: var(--control-expert); padding: 0 var(--space-4); font-size: 14px; line-height: 20px; }
+.pb-btn-primary { background: var(--primary); color: var(--on-primary); }
+.pb-btn-primary:hover { background: var(--primary-hover); }
+.pb-btn-secondary { background: var(--surface-raised); color: var(--primary); border-color: var(--line-strong); }
+.pb-btn-secondary:hover { background: var(--primary-soft); color: var(--primary-soft-ink); }
+.pb-btn-quiet { background: transparent; color: var(--primary); }
+.pb-btn-quiet:hover { background: var(--primary-soft); color: var(--primary-soft-ink); }
+.pb-btn:disabled { background: var(--surface-sunken); color: var(--ink-muted); border-color: var(--line); cursor: not-allowed; }
+
+/* Odznaki: kształt ikony + etykieta + kolor (nigdy sam kolor) */
+.pb-badge { display: inline-flex; align-items: center; gap: var(--space-1); padding: 3px var(--space-2); border-radius: var(--radius-sm); border: 1px solid; white-space: nowrap; max-width: 100%; }
+.pb-badge > span { overflow: hidden; text-overflow: ellipsis; }
+.pb-type-ogloszony { background: var(--surface-raised); color: var(--ink); border-color: var(--line-strong); }
+.pb-type-jednolity { background: var(--primary-soft); color: var(--primary-soft-ink); border-color: var(--primary); }
+.pb-type-kompilacja { background: var(--surface-sunken); color: var(--ink); border-color: var(--line-strong); border-style: dashed; }
+.pb-type-nierozpoznany { background: var(--type-unknown-bg); color: var(--type-unknown); border: 1px dashed var(--type-unknown-line); }
+.pb-status-potwierdzona { background: var(--status-ok-bg); color: var(--status-ok); border-color: var(--status-ok-line); }
+.pb-status-zmiana { background: var(--status-pending-bg); color: var(--status-pending); border-color: var(--status-pending-line); }
+.pb-status-niepotwierdzona { background: var(--status-critical-bg); color: var(--status-critical); border: 2px solid var(--status-critical-line); padding: 2px 7px; }
+.pb-status-przejsciowa { background: var(--status-critical-bg); color: var(--status-critical); border: 2px dashed var(--status-critical-line); padding: 2px 7px; }
+.pb-status-zawieszona { background: var(--status-critical-solid); color: var(--on-status-critical); border: 2px solid var(--status-critical-solid); padding: 2px 7px; }
+.pb-badges { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* Komunikat o aktualności — zawsze przed tekstem przepisu */
+.pb-notice { display: flex; gap: var(--space-3); align-items: flex-start; border-radius: var(--radius-md); border: 1px solid; }
+.pb-notice.pb-simple { padding: var(--space-4); }
+.pb-notice.pb-expert { padding: var(--space-2) var(--space-4); gap: var(--space-2); }
+.pb-notice .pb-icon { margin-top: 2px; }
+.pb-notice-title { margin-bottom: var(--space-1) !important; }
+.pb-notice-zmiana { background: var(--status-pending-bg); border-color: var(--status-pending-line); }
+.pb-notice-zmiana .pb-icon, .pb-notice-zmiana .pb-notice-title { color: var(--status-pending); }
+.pb-notice-niepotwierdzona { background: var(--status-critical-bg); border: 2px solid var(--status-critical-line); }
+.pb-notice-niepotwierdzona .pb-icon, .pb-notice-niepotwierdzona .pb-notice-title { color: var(--status-critical); }
+.pb-notice-przejsciowa { background: var(--status-critical-bg); border: 2px dashed var(--status-critical-line); }
+.pb-notice-przejsciowa .pb-icon, .pb-notice-przejsciowa .pb-notice-title { color: var(--status-critical); }
+.pb-notice-zawieszona { background: var(--status-critical-solid); border: 2px solid var(--status-critical-solid); color: var(--on-status-critical); }
+
+/* Tekst prawa */
+.pb-law { max-width: var(--measure-law); color: var(--ink); font-family: var(--font-serif); hyphens: manual; overflow-wrap: break-word; }
+.pb-law.pb-simple > p + p { margin-top: var(--space-4); }
+.pb-law.pb-expert > p + p { margin-top: var(--space-2); }
+.pb-law-unit { font-variant-numeric: tabular-nums; }
+.pb-law-heading { color: var(--ink-muted); margin: 0; }
+
+/* Objaśnienie nieurzędowe */
+.pb-explain { background: var(--explain-bg); color: var(--ink); border: 1px solid var(--explain-line); border-radius: var(--radius-md); max-width: var(--measure-text); }
+.pb-explain.pb-simple { padding: var(--space-4); }
+.pb-explain.pb-expert { padding: var(--space-4); }
+.pb-explain-label { display: flex; align-items: center; gap: var(--space-1); color: var(--explain-ink); margin-bottom: var(--space-2) !important; }
+.pb-explain-title { margin-bottom: var(--space-1) !important; }
+.pb-explain p + p { margin-top: var(--space-2); }
+
+/* Metryka */
+.pb-cite { border-top: 1px solid var(--line); padding-top: var(--space-4); font-variant-numeric: tabular-nums; }
+.pb-cite.pb-simple { background: var(--surface-sunken); border: 0; border-radius: var(--radius-md); padding: var(--space-4); }
+.pb-cite-act { color: var(--ink); margin-bottom: var(--space-2) !important; }
+.pb-cite-grid { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-4); margin: 0; align-items: baseline; }
+.pb-cite-item { display: contents; }
+.pb-cite.pb-expert .pb-cite-grid { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-5); }
+.pb-cite.pb-expert .pb-cite-item { display: flex; align-items: baseline; gap: var(--space-2); white-space: nowrap; }
+.pb-cite-grid dt { color: var(--ink-muted); }
+.pb-cite-grid dd { margin: 0; color: var(--ink); }
+.pb-cite-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); margin-left: calc(-1 * var(--space-4)); }
+
+/* Karta przepisu */
+.pb-card { background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); display: flex; flex-direction: column; }
+.pb-card.pb-simple { padding: var(--space-4); gap: var(--space-5); }
+.pb-card.pb-expert { padding: var(--space-4); gap: var(--space-4); }
+.pb-card-head { display: flex; flex-direction: column; gap: var(--space-2); }
+.pb-card-head h2 { margin: 0; }
+.pb-card.pb-simple .pb-law-heading { margin-bottom: calc(-1 * var(--space-4)); }
+
+/* Kreator */
+.pb-wizard { background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-4); }
+.pb-steps-count { color: var(--ink-muted); margin-bottom: var(--space-2) !important; }
+.pb-steps ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.pb-step { display: flex; align-items: center; gap: var(--space-2); color: var(--ink-muted); }
+.pb-step-dot { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line-strong); font: 600 13px/1 var(--font-sans); font-variant-numeric: tabular-nums; background: var(--surface-raised); }
+.pb-step-done { color: var(--ink); }
+.pb-step-done .pb-step-dot { background: var(--surface-sunken); color: var(--ink); }
+.pb-step-current { color: var(--ink); font-weight: 600; }
+.pb-step-current .pb-step-dot { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.pb-step-current > span:last-child { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; text-decoration-color: var(--primary); }
+.pb-question { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.pb-question legend { padding: 0; margin-bottom: var(--space-2); }
+.pb-options { display: flex; flex-direction: column; gap: var(--space-2); }
+.pb-option { display: flex; align-items: center; gap: var(--space-3); min-height: var(--control-simple); padding: 0 var(--space-4); border: 1px solid var(--line-strong); border-radius: var(--radius-md); background: var(--surface-raised); cursor: pointer; }
+.pb-option input { width: 20px; height: 20px; margin: 0; accent-color: var(--primary); flex: none; }
+.pb-field-error { display: flex; align-items: center; gap: var(--space-2); color: var(--status-critical); margin: 0; }
+.pb-option.is-selected { background: var(--primary-soft); border: 2px solid var(--primary); padding: 0 calc(var(--space-4) - 1px); color: var(--primary-soft-ink); }
+.pb-wizard.pb-expert .pb-option { min-height: var(--control-expert); }
+.pb-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-2); }
+.pb-result { border-top: 2px solid var(--primary); padding-top: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+.pb-result h2 { margin: 0; }
+.pb-result-kicker { display: flex; align-items: center; gap: var(--space-1); color: var(--primary); }
+.pb-result-basis { background: var(--surface-sunken); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); align-items: flex-start; }
+.pb-result-basis .ui-label { color: var(--ink-muted); }

@@ -1,0 +1,165 @@
+/* Przepisy budowlane — wygenerowane z design/tokens.json (v2). Nie edytuj ręcznie. */
+
+@font-face { font-family: "PB Sans"; src: url("/fonts/PBSans-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "PB Sans"; src: url("/fonts/PBSans-Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "PB Sans"; src: url("/fonts/PBSans-SemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "PB Serif"; src: url("/fonts/PBSerif-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "PB Serif"; src: url("/fonts/PBSerif-Italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+
+@font-face { font-family: "PB Serif"; src: url("/fonts/PBSerif-SemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+
+@font-face { font-family: "PB Mono"; src: url("/fonts/PBMono-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
+:root {
+  color-scheme: light;
+  --surface: #f6f4ef;
+  --surface-raised: #fdfcf9;
+  --surface-sunken: #ece8e0;
+  --ink: #1b2230;
+  --ink-muted: #535a67;
+  --line: #dcd7cd;
+  --line-strong: #878379;
+  --primary: #1f3a5f;
+  --primary-hover: #162b48;
+  --on-primary: #ffffff;
+  --primary-soft: #e2e8f0;
+  --primary-soft-ink: #1f3a5f;
+  --accent: #b07f24;
+  --accent-soft: #f2e6cc;
+  --focus-ring: #1f3a5f;
+  --status-ok: #1d6a4f;
+  --status-ok-bg: #e1f0e8;
+  --status-ok-line: #4f9a7c;
+  --status-pending: #1c5a85;
+  --status-pending-bg: #e0ecf5;
+  --status-pending-line: #5a8fb5;
+  --status-critical: #9a2a18;
+  --status-critical-bg: #fbe8e2;
+  --status-critical-line: #c2553f;
+  --status-critical-solid: #9a2a18;
+  --on-status-critical: #ffffff;
+  --explain-bg: #ebeff4;
+  --explain-ink: #36445a;
+  --explain-line: #76869c;
+  --type-unknown: #5e4a1e;
+  --type-unknown-bg: #f4efe3;
+  --type-unknown-line: #8a7a55;
+  --font-sans: "PB Sans", "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "PB Serif", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: "PB Mono", "Source Code Pro", ui-monospace, Menlo, Consolas, monospace;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --control-simple: 44px;
+  --control-expert: 32px;
+  --measure-law: 75ch;
+  --measure-text: 68ch;
+  --focus-width: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+  --surface: #12161d;
+  --surface-raised: #1a1f28;
+  --surface-sunken: #0d1015;
+  --ink: #e9e6e0;
+  --ink-muted: #a8aeb8;
+  --line: #2c333e;
+  --line-strong: #717a87;
+  --primary: #a3bde0;
+  --primary-hover: #bfd2ec;
+  --on-primary: #0e1a2b;
+  --primary-soft: #22324a;
+  --primary-soft-ink: #c9d8ee;
+  --accent: #d8a851;
+  --accent-soft: #3a2f19;
+  --focus-ring: #a3bde0;
+  --status-ok: #7dcdab;
+  --status-ok-bg: #13302a;
+  --status-ok-line: #4f9a7c;
+  --status-pending: #8ec3e9;
+  --status-pending-bg: #132a3d;
+  --status-pending-line: #5a8fb5;
+  --status-critical: #f3a28f;
+  --status-critical-bg: #3a1b16;
+  --status-critical-line: #d5715c;
+  --status-critical-solid: #f0a08c;
+  --on-status-critical: #2a0d07;
+  --explain-bg: #1f2733;
+  --explain-ink: #bcc7d6;
+  --explain-line: #71829a;
+  --type-unknown: #e2cd98;
+  --type-unknown-bg: #2b2618;
+  --type-unknown-line: #a08f63;
+}
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface: #12161d;
+  --surface-raised: #1a1f28;
+  --surface-sunken: #0d1015;
+  --ink: #e9e6e0;
+  --ink-muted: #a8aeb8;
+  --line: #2c333e;
+  --line-strong: #717a87;
+  --primary: #a3bde0;
+  --primary-hover: #bfd2ec;
+  --on-primary: #0e1a2b;
+  --primary-soft: #22324a;
+  --primary-soft-ink: #c9d8ee;
+  --accent: #d8a851;
+  --accent-soft: #3a2f19;
+  --focus-ring: #a3bde0;
+  --status-ok: #7dcdab;
+  --status-ok-bg: #13302a;
+  --status-ok-line: #4f9a7c;
+  --status-pending: #8ec3e9;
+  --status-pending-bg: #132a3d;
+  --status-pending-line: #5a8fb5;
+  --status-critical: #f3a28f;
+  --status-critical-bg: #3a1b16;
+  --status-critical-line: #d5715c;
+  --status-critical-solid: #f0a08c;
+  --on-status-critical: #2a0d07;
+  --explain-bg: #1f2733;
+  --explain-ink: #bcc7d6;
+  --explain-line: #71829a;
+  --type-unknown: #e2cd98;
+  --type-unknown-bg: #2b2618;
+  --type-unknown-line: #a08f63;
+}
+
+.ui-display { font-family: var(--font-sans); font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.01em; }
+
+.ui-title { font-family: var(--font-sans); font-size: 22px; line-height: 28px; font-weight: 600; }
+
+.ui-heading { font-family: var(--font-sans); font-size: 18px; line-height: 24px; font-weight: 600; }
+
+.ui-body { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 400; }
+
+.ui-small { font-family: var(--font-sans); font-size: 14px; line-height: 21px; font-weight: 400; }
+
+.ui-label { font-family: var(--font-sans); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.01em; }
+
+.law-simple { font-family: var(--font-serif); font-size: 18px; line-height: 28px; font-weight: 400; }
+
+.law-expert { font-family: var(--font-serif); font-size: 17px; line-height: 26px; font-weight: 400; }
+
+.law-unit { font-family: var(--font-serif); font-size: 17px; line-height: 26px; font-weight: 600; }
+
+.meta { font-family: var(--font-mono); font-size: 14px; line-height: 21px; font-weight: 400; font-variant-numeric: tabular-nums slashed-zero; }
+
+.meta-small { font-family: var(--font-mono); font-size: 13px; line-height: 18px; font-weight: 400; font-variant-numeric: tabular-nums slashed-zero; }
