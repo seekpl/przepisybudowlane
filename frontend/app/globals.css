@@ -742,3 +742,14 @@ details.pb-details[open] > summary {
 .pb-expert-page .pb-input {
   min-height: var(--control-expert);
 }
+
+/* Odznaka może się zawinąć na wąskim ekranie (WCAG 1.4.10 i 1.4.12) — treść statusu nie może zniknąć. */
+.pb-badge {
+  white-space: normal;
+}
+.pb-badge > span {
+  overflow: visible;
+}
+.pb-detail > * {
+  min-width: 0;
+}

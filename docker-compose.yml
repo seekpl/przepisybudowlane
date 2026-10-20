@@ -1,0 +1,67 @@
+# Lokalne uruchomienie całości: docker compose up --build
+# Aplikacja: http://localhost:3000 · API: http://localhost:8000/docs
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: przepisy
+      POSTGRES_USER: przepisy
+      POSTGRES_PASSWORD: przepisy
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U przepisy -d przepisy"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment: &backend-env
+      PB_DATABASE_URL: postgresql+psycopg://przepisy:przepisy@db:5432/przepisy
+      PB_CORS_ORIGINS: http://localhost:3000
+      # Tokeny redakcji do czasu OIDC — tylko do lokalnych testów; w środowisku publicznym podaj własne.
+      PB_EDITOR_TOKENS: ${PB_EDITOR_TOKENS:-anna=redaktor:zmien-mnie-anna;jan=recenzent:zmien-mnie-jan}
+    command: sh -c "python -m app.cli migrate && python -m app.cli seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - archive:/app/var/archive
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  # Synchronizacja z ELI co godzinę (PB_SYNC_INTERVAL_MINUTES). Wymaga dostępu do api.sejm.gov.pl.
+  worker:
+    build: ./backend
+    environment: *backend-env
+    command: python -m app.cli worker
+    volumes:
+      - archive:/app/var/archive
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        BACKEND_URL: http://backend:8000
+    environment:
+      BACKEND_URL: http://backend:8000
+      SITE_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db:
+  archive:

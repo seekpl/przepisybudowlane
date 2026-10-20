@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brak połączenia · Przepisy budowlane</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  /* Statyczna strona bez JavaScriptu — service worker podaje ją, gdy nie ma sieci. Kolory z tokenów identyfikacji. */
+  @font-face { font-family: "PB Sans"; src: url("/fonts/PBSans-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "PB Sans"; src: url("/fonts/PBSans-SemiBold.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+  :root { --surface: #f6f4ef; --surface-raised: #fdfcf9; --ink: #1b2230; --ink-muted: #535a67; --line: #dcd7cd; --primary: #1f3a5f; --on-primary: #ffffff; --focus-ring: #1f3a5f; color-scheme: light; }
+  @media (prefers-color-scheme: dark) {
+    :root { --surface: #12161d; --surface-raised: #1a1f28; --ink: #e9e6e0; --ink-muted: #a8aeb8; --line: #2c333e; --primary: #a3bde0; --on-primary: #0e1a2b; --focus-ring: #a3bde0; color-scheme: dark; }
+  }
+  body { margin: 0; background: var(--surface); color: var(--ink); font: 400 16px/24px "PB Sans", "Source Sans 3", system-ui, sans-serif; }
+  header { border-bottom: 1px solid var(--line); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 16px; }
+  .brand { display: inline-flex; align-items: center; gap: 8px; font-size: 18px; line-height: 24px; font-weight: 600; }
+  main .wrap { max-width: 640px; padding-top: 32px; }
+  h1 { font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 16px; }
+  p { margin: 0 0 16px; }
+  .muted { color: var(--ink-muted); }
+  a.btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 4px; background: var(--primary); color: var(--on-primary); text-decoration: none; font-weight: 500; }
+  a:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<header><div class="wrap"><span class="brand"><img src="/brand/znak-kolor.svg" alt="" width="40" height="40"> Przepisy budowlane</span></div></header>
+<main>
+  <div class="wrap">
+    <h1>Brak połączenia</h1>
+    <p>Nie możemy teraz sprawdzić, czy przepisy są aktualne, więc ich nie pokazujemy. Zapamiętany tekst mógłby być nieaktualny.</p>
+    <p class="muted">Połącz się z internetem i spróbuj jeszcze raz.</p>
+    <p><a class="btn" href="">Spróbuj ponownie</a></p>
+  </div>
+</main>
+</body>
+</html>

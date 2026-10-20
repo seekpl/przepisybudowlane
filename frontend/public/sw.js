@@ -3,9 +3,11 @@
  * aplikacji) i stronę offline. Strony z przepisami i odpowiedzi API zawsze pobieramy z sieci — bez sieci
  * pokazujemy stronę „Brak połączenia”, a nie starą wersję przepisu.
  */
-const CACHE = "pb-static-v1";
+const CACHE = "pb-static-v2";
+// Strona offline jest statyczna (bez JavaScriptu): podana pod dowolnym adresem nie wywołuje hydratacji aplikacji.
+const OFFLINE = "/offline.html";
 const PRECACHE = [
-  "/offline",
+  OFFLINE,
   "/favicon.svg",
   "/manifest.webmanifest",
   "/brand/znak-kolor.svg",
@@ -45,7 +47,12 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (req.mode === "navigate") {
-    event.respondWith(fetch(req).catch(() => caches.match("/offline")));
+    event.respondWith(
+      fetch(req).catch(async () => {
+        const page = await caches.match(OFFLINE, { ignoreVary: true });
+        return page ?? new Response("Brak połączenia.", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      }),
+    );
     return;
   }
   if (isStatic(url)) {

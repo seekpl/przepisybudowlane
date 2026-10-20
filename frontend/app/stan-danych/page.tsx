@@ -50,7 +50,7 @@ export default async function Page() {
         <h2 id="akty" className="ui-title">
           Akty
         </h2>
-        <div className="pb-table-wrap">
+        <div className="pb-table-wrap" tabIndex={0} role="region" aria-label="Tabela — przewiń w poziomie, jeśli się nie mieści">
           <table className="pb-table ui-small">
             <thead>
               <tr>
@@ -107,7 +107,7 @@ export default async function Page() {
         {st.runs.length === 0 ? (
           <p className="ui-body pb-muted">Jeszcze żadnego.</p>
         ) : (
-          <div className="pb-table-wrap">
+          <div className="pb-table-wrap" tabIndex={0} role="region" aria-label="Tabela — przewiń w poziomie, jeśli się nie mieści">
             <table className="pb-table ui-small">
               <thead>
                 <tr>

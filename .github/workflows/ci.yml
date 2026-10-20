@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — lint, typy, migracje, testy
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: przepisy
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      PB_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/przepisy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - name: Lint i formatowanie
+        run: |
+          uv run ruff check app tests migrations
+          uv run ruff format --check app tests migrations
+      - name: Typy
+        run: uv run mypy
+      - name: Migracje zgodne z modelem
+        run: |
+          uv run alembic upgrade head
+          uv run alembic check
+      - name: Testy (stan prawny, synchronizacja, redakcja, API)
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "create database przepisy_test"
+          PB_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/przepisy_test uv run pytest
+
+  frontend:
+    name: Frontend — tokeny, lint, typy, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: tokens.css zgodne z design/tokens.json
+        run: |
+          npm run tokens
+          git diff --exit-code app/tokens.css
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  e2e:
+    name: E2E — przeglądarka, dostępność (axe), 375 px
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: przepisy
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      PB_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/przepisy
+      BACKEND_URL: http://localhost:8000
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Backend z treściami startowymi
+        working-directory: backend
+        run: |
+          uv sync --frozen --no-dev
+          uv run python -m app.cli migrate
+          uv run python -m app.cli seed
+          nohup uv run uvicorn app.main:app --port 8000 > ../backend.log 2>&1 &
+      - name: Frontend (build produkcyjny)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          nohup npx next start -p 3000 > ../frontend.log 2>&1 &
+          npx playwright install --with-deps chromium
+      - name: Czekaj na usługi
+        run: |
+          for i in $(seq 1 60); do curl -fs http://localhost:8000/healthz && curl -fs http://localhost:3000/ > /dev/null && exit 0; sleep 2; done
+          cat backend.log frontend.log; exit 1
+      - name: Testy E2E
+        working-directory: frontend
+        run: npx playwright test
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+            backend.log
+            frontend.log
+          retention-days: 7

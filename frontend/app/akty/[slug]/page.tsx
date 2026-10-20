@@ -95,7 +95,7 @@ export default async function Page({ params }: Props) {
             {a.amendments.length === 0 ? (
               <p className="ui-small pb-muted">Brak — lista powstaje automatycznie z ELI podczas synchronizacji.</p>
             ) : (
-              <div className="pb-table-wrap">
+              <div className="pb-table-wrap" tabIndex={0} role="region" aria-label="Tabela — przewiń w poziomie, jeśli się nie mieści">
                 <table className="pb-table ui-small">
                   <thead>
                     <tr>

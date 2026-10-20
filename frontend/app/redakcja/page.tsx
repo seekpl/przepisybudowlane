@@ -110,7 +110,7 @@ export default async function Page() {
         {tasks.length === 0 ? (
           <p className="ui-body pb-muted">Brak otwartych zadań.</p>
         ) : (
-          <div className="pb-table-wrap">
+          <div className="pb-table-wrap" tabIndex={0} role="region" aria-label="Tabela — przewiń w poziomie, jeśli się nie mieści">
             <table className="pb-table ui-small">
               <thead>
                 <tr>
@@ -179,7 +179,7 @@ export default async function Page() {
         {reports.length === 0 ? (
           <p className="ui-body pb-muted">Brak zgłoszeń.</p>
         ) : (
-          <div className="pb-table-wrap">
+          <div className="pb-table-wrap" tabIndex={0} role="region" aria-label="Tabela — przewiń w poziomie, jeśli się nie mieści">
             <table className="pb-table ui-small">
               <thead>
                 <tr>
@@ -223,7 +223,7 @@ export default async function Page() {
 
 function ContentTable({ rows }: { rows: Content[] }) {
   return (
-    <div className="pb-table-wrap">
+    <div className="pb-table-wrap" tabIndex={0} role="region" aria-label="Tabela — przewiń w poziomie, jeśli się nie mieści">
       <table className="pb-table ui-small">
         <thead>
           <tr>

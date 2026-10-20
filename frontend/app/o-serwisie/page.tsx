@@ -129,7 +129,7 @@ export default async function Page() {
         <p className="ui-body pb-measure" style={{ marginBottom: "var(--space-3)" }}>
           {typo("Gdy wpiszesz słowo z lewej kolumny, szukamy też terminów z prawej. Słownik jest jawny, żeby było wiadomo, skąd wynik.")}
         </p>
-        <div className="pb-table-wrap">
+        <div className="pb-table-wrap" tabIndex={0} role="region" aria-label="Tabela — przewiń w poziomie, jeśli się nie mieści">
           <table className="pb-table ui-small" aria-labelledby="synonimy-h">
             <thead>
               <tr>
