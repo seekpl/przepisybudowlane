@@ -1,0 +1,559 @@
+# Treści startowe prototypu.
+#
+# UWAGA: to treści DEMONSTRACYJNE. Przechodzą przez prawdziwy obieg redakcyjny (szkic → recenzja →
+# zatwierdzony → opublikowany) z kontami „demo-redaktor” i „demo-recenzent”, ale żadna z nich nie
+# była czytana przez prawnika. Interfejs oznacza je etykietą „Treść demonstracyjna”.
+#
+# Tekst prawa:
+# - Warunki techniczne, § 12 ust. 1 — brzmienie sprawdzone ze źródłem 19.10.2026 (identyfikacja
+#   „Przepisy budowlane”, komponent ProvisionCard); typ: własna kompilacja (t.j. 2022 + zm. 2023).
+# - Prawo budowlane, art. 28 ust. 1 i art. 29 ust. 1 pkt 1 i 1a — wpisane ręcznie, NIE porównane
+#   z Dziennikiem Ustaw; dlatego typ „nierozpoznany” i status „nie potwierdzono”. Synchronizacja
+#   z ELI zastąpi je tekstem urzędowym.
+
+text_versions:
+  - act: warunki-techniczne
+    text_type: kompilacja
+    source_eli: DU/2022/1225
+    journal_display: Dz.U. 2022 poz. 1225, zm. 2023 poz. 2442
+    legal_status_date: 2026-09-19
+    incorporated: [DU/2023/2442]
+    note: >-
+      Kompilacja redakcji: tekst jednolity z 2022 r. nie zawiera zmiany z Dz.U. 2023 poz. 2442.
+      Brzmienie § 12 ust. 1 sprawdzone ze źródłem 19.10.2026.
+    units:
+      - key: par_12.ust_1
+        title: Odległość budynku od granicy działki
+        featured: true
+        illustration: rzut-odleglosc-od-granicy
+        content:
+          - unit: "§ 12. 1."
+            text: >-
+              Jeżeli z przepisów § 13, § 19, § 23, § 36, § 40, § 60 i § 271–273 lub przepisów odrębnych
+              określających dopuszczalne odległości niektórych budowli od budynków nie wynikają inne wymagania,
+              budynek na działce budowlanej należy sytuować w odległości od granicy tej działki nie mniejszej niż:
+          - unit: "1)"
+            text: 4 m – w przypadku budynku zwróconego ścianą z oknami lub drzwiami w stronę tej granicy;
+          - unit: "2)"
+            text: 3 m – w przypadku budynku zwróconego ścianą bez okien lub drzwi w stronę tej granicy;
+          - unit: "3)"
+            text: >-
+              5 m – w przypadku budynku mieszkalnego wielorodzinnego o wysokości ponad 4 kondygnacji nadziemnych,
+              zwróconego ścianą z oknami lub drzwiami w stronę tej granicy;
+          - unit: "4)"
+            text: >-
+              5 m – w przypadku budynku mieszkalnego wielorodzinnego o wysokości ponad 4 kondygnacji nadziemnych,
+              zwróconego ścianą bez okien lub drzwi w stronę tej granicy.
+
+  - act: prawo-budowlane
+    text_type: nierozpoznany
+    source_eli: DU/2026/524
+    journal_display: Dz.U. 2026 poz. 524
+    legal_status_date: null
+    incorporated: []
+    note: >-
+      Tekst wpisany ręcznie w prototypie i nieporównany z Dziennikiem Ustaw. Do zastąpienia tekstem
+      z synchronizacji ELI.
+    units:
+      - key: art_28.ust_1
+        title: Pozwolenie na budowę — zasada
+        featured: true
+        content:
+          - unit: "Art. 28. 1."
+            text: >-
+              Roboty budowlane można rozpocząć jedynie na podstawie decyzji o pozwoleniu na budowę,
+              z zastrzeżeniem art. 29–31.
+      - key: art_29.ust_1.pkt_1
+        title: Dom jednorodzinny na zgłoszenie
+        featured: true
+        content:
+          - unit: "Art. 29. 1."
+            text: >-
+              Nie wymaga decyzji o pozwoleniu na budowę, ale wymaga zgłoszenia, o którym mowa w art. 30, budowa:
+          - unit: "1)"
+            text: >-
+              wolno stojących budynków mieszkalnych jednorodzinnych, których obszar oddziaływania mieści się
+              w całości na działce lub działkach, na których zostały zaprojektowane;
+      - key: art_29.ust_1.pkt_1a
+        title: Dom do 70 m² na własne potrzeby
+        featured: true
+        content:
+          - unit: "Art. 29. 1."
+            text: >-
+              Nie wymaga decyzji o pozwoleniu na budowę, ale wymaga zgłoszenia, o którym mowa w art. 30, budowa:
+          - unit: "1a)"
+            text: >-
+              wolno stojących, nie więcej niż dwukondygnacyjnych budynków mieszkalnych jednorodzinnych
+              o powierzchni zabudowy do 70 m², których obszar oddziaływania mieści się w całości na działce
+              lub działkach, na których zostały zaprojektowane, a budowa jest prowadzona w celu zaspokojenia
+              własnych potrzeb mieszkaniowych inwestora;
+
+validity:
+  - act: warunki-techniczne
+    kind: utracil_moc
+    valid_from: 2026-09-20
+    basis: Stan prawny sprawdzony 19.10.2026 (identyfikacja „Przepisy budowlane”).
+  - act: warunki-techniczne
+    kind: stosowany_przejsciowo
+    valid_from: 2026-09-20
+    basis: art. 102a Prawa budowlanego
+    title: Te warunki techniczne utraciły moc 20 września 2026 r.
+    description: >-
+      Nowe rozporządzenie nie zostało jeszcze ogłoszone. Przez 18 miesięcy od 20 września 2026 r. projekt
+      możesz przygotować według tych przepisów, jeśli złożysz oświadczenie inwestora (art. 102a Prawa budowlanego).
+
+verifications:
+  - act: warunki-techniczne
+    unit: par_12.ust_1
+    verified_at: 2026-10-19T12:00:00+02:00
+    verified_by: Redakcja projektu identyfikacji
+    method: Porównanie z Dz.U. 2022 poz. 1225 i Dz.U. 2023 poz. 2442
+    scope: brzmienie § 12 ust. 1 i stan prawny (utrata mocy, art. 102a Prawa budowlanego)
+
+explanations:
+  - act: warunki-techniczne
+    unit: par_12.ust_1
+    title: Co to znaczy w praktyce
+    body: |-
+      Ścianę z oknami lub drzwiami odsuń od granicy działki co najmniej o 4 m, a ścianę bez okien i drzwi — co najmniej o 3 m.
+
+      Jeśli plan miejscowy na to pozwala, ścianę bez okien możesz postawić 1,5 m od granicy albo przy samej granicy (ust. 2).
+
+      Plan miejscowy albo decyzja o warunkach zabudowy mogą ustalać inne zasady. Sprawdź je, zanim projektant zacznie pracę.
+
+  - act: prawo-budowlane
+    unit: art_28.ust_1
+    title: Co to znaczy w praktyce
+    body: |-
+      Zasadą jest pozwolenie na budowę: bez decyzji starosty (a w mieście na prawach powiatu — prezydenta miasta) nie zaczynasz robót.
+
+      Wyjątki — budowy na zgłoszenie i bez formalności — wymieniają art. 29–31. Sprawdź w kreatorze, czy Twój dom do nich należy.
+
+  - act: prawo-budowlane
+    unit: art_29.ust_1.pkt_1
+    title: Co to znaczy w praktyce
+    body: |-
+      Wolno stojący dom jednorodzinny możesz zbudować na zgłoszenie, bez pozwolenia na budowę — jeśli jego obszar oddziaływania mieści się w całości na Twojej działce.
+
+      Do zgłoszenia dołączasz projekt budowlany. Zgłoszenie składasz w starostwie, a w mieście na prawach powiatu — u prezydenta miasta.
+
+      Jeśli obszar oddziaływania obejmie działkę sąsiada, potrzebujesz pozwolenia na budowę.
+
+  - act: prawo-budowlane
+    unit: art_29.ust_1.pkt_1a
+    title: Co to znaczy w praktyce
+    body: |-
+      Wolno stojący dom jednorodzinny do 70 m² zabudowy, najwyżej dwukondygnacyjny, budowany na Twoje własne potrzeby mieszkaniowe, nie wymaga pozwolenia na budowę — jeśli jego obszar oddziaływania mieści się na Twojej działce.
+
+      Zgłoszenie składasz w starostwie, a w mieście na prawach powiatu — u prezydenta miasta.
+
+glossary:
+  - slug: budynek
+    term: Budynek
+    definition: >-
+      Obiekt budowlany trwale związany z gruntem, wydzielony z przestrzeni ścianami lub innymi przegrodami,
+      który ma fundamenty i dach.
+    basis: art. 3 pkt 2 Prawa budowlanego
+    see_also: [budowa]
+  - slug: budowa
+    term: Budowa
+    definition: >-
+      Wykonanie obiektu budowlanego w określonym miejscu. Budową jest też odbudowa, rozbudowa i nadbudowa
+      istniejącego obiektu.
+    basis: art. 3 pkt 6 Prawa budowlanego
+    see_also: [roboty-budowlane]
+  - slug: roboty-budowlane
+    term: Roboty budowlane
+    definition: Budowa, a także przebudowa, montaż, remont albo rozbiórka obiektu budowlanego.
+    basis: art. 3 pkt 7 Prawa budowlanego
+    see_also: [budowa, remont]
+  - slug: remont
+    term: Remont
+    definition: >-
+      Prace, które przywracają istniejący obiekt do stanu pierwotnego i nie są bieżącą konserwacją.
+      Możesz przy tym użyć innych materiałów niż te, z których obiekt zbudowano.
+    basis: art. 3 pkt 8 Prawa budowlanego
+    see_also: [roboty-budowlane]
+  - slug: pozwolenie-na-budowe
+    term: Pozwolenie na budowę
+    definition: >-
+      Decyzja starosty (w mieście na prawach powiatu — prezydenta miasta), która pozwala rozpocząć
+      i prowadzić budowę. To zasada; wyjątki opisują art. 29–31.
+    basis: art. 3 pkt 12 i art. 28 Prawa budowlanego
+    units: [prawo-budowlane-art-28-ust-1]
+    see_also: [zgloszenie]
+  - slug: zgloszenie
+    term: Zgłoszenie budowy
+    definition: >-
+      Zawiadomienie starosty (w mieście na prawach powiatu — prezydenta miasta) o zamiarze budowy, zamiast
+      wniosku o pozwolenie. Jeśli organ nie wniesie sprzeciwu w terminie z ustawy, możesz zacząć budowę.
+      Terminy i wymagane dokumenty zależą od rodzaju budowy.
+    basis: art. 29 i 30 Prawa budowlanego
+    units: [prawo-budowlane-art-29-ust-1-pkt-1, prawo-budowlane-art-29-ust-1-pkt-1a]
+    see_also: [pozwolenie-na-budowe]
+  - slug: obszar-oddzialywania
+    term: Obszar oddziaływania obiektu
+    definition: >-
+      Teren wokół obiektu, na którym przepisy ograniczają zabudowę albo zagospodarowanie z powodu tego obiektu
+      (np. przez wymagane odległości). Jeśli obejmuje działkę sąsiada, sąsiad staje się stroną postępowania.
+      Ustala go projektant.
+    basis: art. 3 pkt 20 i art. 28 ust. 2 Prawa budowlanego
+    see_also: [zgloszenie]
+  - slug: powierzchnia-zabudowy
+    term: Powierzchnia zabudowy
+    definition: >-
+      Powierzchnia terenu zajęta przez budynek — liczy się obrys budynku na gruncie, bez tarasów i schodów
+      zewnętrznych.
+    basis: Definicja normowa (PN-ISO 9836), nie ustawowa — tekst normy udostępnia PKN.
+    see_also: [budynek]
+  - slug: kondygnacja
+    term: Kondygnacja
+    definition: >-
+      Pozioma część budynku między podłogą a podłogą następnego poziomu. Poddasze z pomieszczeniami
+      na pobyt ludzi też liczy się jako kondygnacja.
+    basis: § 3 warunków technicznych
+    see_also: [budynek]
+  - slug: wysokosc-budynku
+    term: Wysokość budynku
+    definition: >-
+      Sposób pomiaru zależy od dokumentu: inaczej liczą ją warunki techniczne, a inaczej plan miejscowy albo
+      decyzja o warunkach zabudowy. Zwykle mierzysz od poziomu terenu przy wejściu do budynku.
+      Sprawdź definicję w dokumencie, który Cię dotyczy.
+    basis: § 6 warunków technicznych; plan miejscowy
+    illustration: przekroj-wysokosc-budynku
+    see_also: [kondygnacja]
+  - slug: linia-zabudowy
+    term: Nieprzekraczalna linia zabudowy
+    definition: >-
+      Linia z planu miejscowego albo z decyzji o warunkach zabudowy, której ściana budynku nie może
+      przekroczyć — najczęściej od strony drogi.
+    basis: Plan miejscowy albo decyzja o warunkach zabudowy
+    illustration: rzut-linia-zabudowy
+    see_also: [plan-miejscowy]
+  - slug: plan-miejscowy
+    term: Miejscowy plan zagospodarowania przestrzennego
+    definition: >-
+      Uchwała rady gminy, która ustala, co i jak można budować na danym terenie: przeznaczenie, linie zabudowy,
+      wysokość budynków. To akt prawa miejscowego — nie ma go w Dzienniku Ustaw. Wypis i wyrys wydaje gmina.
+    basis: Ustawa o planowaniu i zagospodarowaniu przestrzennym
+    see_also: [warunki-zabudowy, plan-ogolny]
+  - slug: warunki-zabudowy
+    term: Decyzja o warunkach zabudowy
+    definition: >-
+      Decyzja wójta, burmistrza albo prezydenta miasta, która ustala zasady zabudowy działki tam, gdzie nie ma
+      planu miejscowego. Po reformie planowania zasady jej wydawania zależą od planu ogólnego gminy i daty wniosku.
+    basis: Ustawa o planowaniu i zagospodarowaniu przestrzennym
+    see_also: [plan-miejscowy, plan-ogolny]
+  - slug: plan-ogolny
+    term: Plan ogólny gminy
+    definition: >-
+      Dokument planistyczny gminy, który zastępuje studium uwarunkowań. Dzieli gminę na strefy; od niego zależą
+      m.in. warunki zabudowy. Studia uwarunkowań straciły moc 31 sierpnia 2026 r.
+    basis: Ustawa o planowaniu i zagospodarowaniu przestrzennym wraz z przepisami przejściowymi
+    see_also: [plan-miejscowy, warunki-zabudowy]
+  - slug: nadzor-budowlany
+    term: Nadzór budowlany (PINB)
+    definition: >-
+      Powiatowy inspektor nadzoru budowlanego kontroluje budowy, przyjmuje zawiadomienia o zakończeniu
+      budowy i wydaje pozwolenia na użytkowanie.
+    basis: Prawo budowlane, rozdziały 7 i 8
+    see_also: []
+
+guides:
+  - slug: budowa-domu
+    title: Budowa domu jednorodzinnego krok po kroku
+    summary: Od sprawdzenia działki do pierwszego dnia budowy — kroki dla wolno stojącego domu jednorodzinnego.
+    caveat: >-
+      Kolejność i dokumenty mogą się różnić w zależności od gminy i rodzaju domu. To informacja,
+      nie porada prawna.
+    units: [prawo-budowlane-art-28-ust-1, prawo-budowlane-art-29-ust-1-pkt-1, prawo-budowlane-art-29-ust-1-pkt-1a, warunki-techniczne-par-12-ust-1]
+    steps:
+      - title: Sprawdź, co wolno zbudować na działce
+        who: Urząd gminy
+        body: >-
+          Zapytaj w gminie, czy dla działki jest plan miejscowy. Jeśli go nie ma, potrzebujesz decyzji
+          o warunkach zabudowy.
+        documents: [Wypis i wyrys z planu miejscowego albo decyzja o warunkach zabudowy]
+        basis: Ustawa o planowaniu i zagospodarowaniu przestrzennym
+        link: /sciezki/dzialka-co-zbudowac
+      - title: Zamów mapę do celów projektowych
+        who: Geodeta z uprawnieniami
+        body: Projektant potrzebuje aktualnej mapy działki z sieciami uzbrojenia terenu.
+        documents: [Mapa do celów projektowych]
+        basis: Prawo geodezyjne i kartograficzne (poza zakresem MVP)
+      - title: Zleć projekt budowlany
+        who: Projektant z uprawnieniami
+        body: >-
+          Projekt zagospodarowania działki i projekt architektoniczno-budowlany przygotowuje projektant.
+          Ustali też obszar oddziaływania domu i sprawdzi odległości od granic działki.
+        documents: [Projekt zagospodarowania działki, Projekt architektoniczno-budowlany]
+        basis: art. 34 Prawa budowlanego
+        unit: warunki-techniczne-par-12-ust-1
+      - title: Złóż zgłoszenie albo wniosek o pozwolenie na budowę
+        who: Starosta, a w mieście na prawach powiatu — prezydent miasta
+        body: >-
+          Sprawdź w kreatorze, czy wystarczy zgłoszenie. Wniosek albo zgłoszenie złożysz przez internet
+          w serwisie e-Budownictwo.
+        documents:
+          - Zgłoszenie budowy albo wniosek o pozwolenie na budowę
+          - Projekt budowlany
+          - Oświadczenie o prawie do dysponowania nieruchomością na cele budowlane
+        basis: art. 28–30 Prawa budowlanego
+        unit: prawo-budowlane-art-29-ust-1-pkt-1
+        link: /kreator/pozwolenie-zgloszenie
+      - title: Zatrudnij kierownika budowy i załóż dziennik budowy
+        who: Kierownik budowy; dziennik w wersji elektronicznej (EDB)
+        body: >-
+          Kierownika budowy i dziennika budowy wymaga większość budów domów. Inne zasady ma m.in. dom do 70 m²
+          budowany na własne potrzeby — sprawdź, co dotyczy Ciebie.
+        documents: [Oświadczenie kierownika budowy o przyjęciu obowiązków]
+        basis: art. 42 i 45 Prawa budowlanego
+      - title: Zawiadom o rozpoczęciu robót
+        who: Nadzór budowlany (PINB)
+        body: >-
+          Przed rozpoczęciem robót zawiadom nadzór budowlany o terminie ich rozpoczęcia — zwykle co najmniej
+          7 dni wcześniej.
+        documents: [Zawiadomienie o zamierzonym terminie rozpoczęcia robót budowlanych]
+        basis: art. 41 Prawa budowlanego
+
+  - slug: zakonczenie-budowy
+    title: Skończyłem budowę — co dalej?
+    summary: Co zrobić po zakończeniu budowy domu, zanim się do niego wprowadzisz.
+    caveat: To informacja, nie porada prawna. W razie wątpliwości zapytaj w nadzorze budowlanym.
+    units: []
+    steps:
+      - title: Zleć geodezyjną inwentaryzację powykonawczą
+        who: Geodeta z uprawnieniami
+        body: Geodeta sprawdzi, gdzie dokładnie stoi budynek, i przekaże wynik do zasobu geodezyjnego.
+        documents: [Geodezyjna inwentaryzacja powykonawcza]
+        basis: art. 43 Prawa budowlanego
+      - title: Zbierz dokumenty z budowy
+        who: Kierownik budowy
+        body: Kierownik budowy przygotuje oświadczenie o zgodności wykonania z projektem i zamknie dziennik budowy.
+        documents: [Oświadczenie kierownika budowy, Dziennik budowy, Protokoły badań i sprawdzeń]
+        basis: art. 57 Prawa budowlanego
+      - title: Zawiadom o zakończeniu budowy albo wystąp o pozwolenie na użytkowanie
+        who: Nadzór budowlany (PINB)
+        body: >-
+          Jeśli w ciągu 14 dni od doręczenia zawiadomienia nadzór nie wniesie sprzeciwu, możesz zacząć użytkowanie.
+          Pozwolenie na użytkowanie jest potrzebne m.in. wtedy, gdy chcesz zamieszkać przed zakończeniem wszystkich robót.
+        documents: [Zawiadomienie o zakończeniu budowy albo wniosek o pozwolenie na użytkowanie]
+        basis: art. 54 i 55 Prawa budowlanego
+      - title: Przechowuj dokumentację
+        who: Ty jako właściciel
+        body: Dokumentacja budowy i powykonawcza przyda się przy kontroli, remoncie i sprzedaży domu.
+        documents: []
+        basis: Prawo budowlane, rozdział 6 (utrzymanie obiektów budowlanych)
+
+  - slug: dzialka-co-zbudowac
+    title: Kupuję działkę — co mogę na niej zbudować?
+    summary: Zanim kupisz działkę, sprawdź jej przeznaczenie. Od 2026 r. znaczenie mają przepisy przejściowe reformy planowania.
+    caveat: >-
+      Aplikacja nie zastępuje wypisu i wyrysu z planu miejscowego ani informacji z gminy. Odpowiedź zależy
+      od daty wniosku i stanu planistycznego gminy.
+    units: []
+    steps:
+      - title: Sprawdź, czy dla działki jest plan miejscowy
+        who: Urząd gminy
+        body: >-
+          Plan miejscowy przesądza, co wolno zbudować. Poproś o wypis i wyrys. Sprawdź przeznaczenie terenu,
+          linię zabudowy i dopuszczalną wysokość budynków.
+        documents: [Wypis i wyrys z planu miejscowego]
+        basis: Ustawa o planowaniu i zagospodarowaniu przestrzennym
+        illustration: rzut-linia-zabudowy
+      - title: Jeśli planu nie ma — sprawdź plan ogólny i warunki zabudowy
+        who: Urząd gminy
+        body: >-
+          Studia uwarunkowań straciły moc 31 sierpnia 2026 r. W gminie bez planu ogólnego wnioski o warunki
+          zabudowy złożone przed 1 września 2026 r. rozpatruje się na dotychczasowych zasadach, a złożone później —
+          tylko dla terenów zamkniętych (odpowiedź MRiT na interpelację nr 19042 z 5 września 2026 r.).
+          Plany miejscowe i prawomocne decyzje o warunkach zabudowy pozostają w mocy.
+        documents: [Informacja z gminy o planie ogólnym]
+        basis: Ustawa o planowaniu i zagospodarowaniu przestrzennym — przepisy przejściowe
+      - title: Sprawdź dostęp do drogi i media
+        who: Sprzedający, gmina, zarządcy sieci
+        body: >-
+          Działka budowlana musi mieć dostęp do drogi publicznej i możliwość podłączenia mediów, tak by dało się
+          na niej zrealizować budynek.
+        documents: [Warunki przyłączenia do sieci]
+        basis: art. 2 pkt 12 ustawy o planowaniu i zagospodarowaniu przestrzennym
+      - title: Sprawdź inne ograniczenia
+        who: Gmina, konserwator zabytków, Wody Polskie
+        body: >-
+          Na zabudowę mogą wpływać ochrona zabytków, tereny zalewowe i ochrona gruntów rolnych. Te obszary
+          opiszemy po MVP — do tego czasu zapytaj w gminie.
+        documents: []
+        basis: Przepisy odrębne (poza zakresem MVP)
+
+trees:
+  - slug: pozwolenie-zgloszenie
+    title: Czy potrzebuję pozwolenia na budowę?
+    intro: >-
+      Kilka pytań o to, co chcesz zbudować. Na końcu zobaczysz odpowiedź z podstawą prawną.
+    scope_note: >-
+      Kreator obejmuje na razie budowę wolno stojącego domu jednorodzinnego. Nie dotyczy przebudowy, rozbudowy
+      ani zmiany sposobu użytkowania. Inne obiekty dodamy po weryfikacji prawnej.
+    root: rodzaj
+    nodes:
+      - key: rodzaj
+        kind: pytanie
+        step: Rodzaj obiektu
+        question: Co chcesz zbudować?
+        options:
+          - {label: Wolno stojący dom jednorodzinny, next: powierzchnia}
+          - {label: Dom w zabudowie bliźniaczej lub szeregowej, next: poza-zakresem-dom}
+          - {label: Garaż, wiatę, altanę albo budynek gospodarczy, next: poza-zakresem}
+          - {label: Ogrodzenie, next: poza-zakresem}
+          - {label: Coś innego, next: poza-zakresem}
+      - key: powierzchnia
+        kind: pytanie
+        step: Powierzchnia
+        question: Jaka będzie powierzchnia zabudowy domu?
+        help: Liczy się obrys budynku na gruncie, bez tarasów i schodów zewnętrznych.
+        options:
+          - {label: do 70 m², next: kondygnacje}
+          - {label: powyżej 70 m², next: oddzialywanie}
+          - {label: Jeszcze nie wiem, next: nie-wiem-powierzchnia}
+      - key: kondygnacje
+        kind: pytanie
+        step: Kondygnacje
+        question: Ile kondygnacji nadziemnych będzie miał dom?
+        help: Poddasze z pokojami liczy się jako kondygnacja.
+        options:
+          - {label: Jedną albo dwie, next: cel}
+          - {label: Więcej niż dwie, next: oddzialywanie}
+          - {label: Jeszcze nie wiem, next: nie-wiem-kondygnacje}
+      - key: cel
+        kind: pytanie
+        step: Cel budowy
+        question: Czy budujesz dom na własne potrzeby mieszkaniowe?
+        help: Chodzi o dom, w którym zamieszkasz — nie na sprzedaż ani na wynajem.
+        options:
+          - {label: Tak, next: oddzialywanie-70}
+          - {label: Nie, next: oddzialywanie}
+      - key: oddzialywanie-70
+        kind: pytanie
+        step: Obszar oddziaływania
+        question: Czy obszar oddziaływania domu zmieści się w całości na Twojej działce?
+        help: To teren wokół budynku, na którym przepisy ograniczają zabudowę, np. przez wymagane odległości. Ustali go projektant.
+        options:
+          - {label: Tak, next: wynik-zgloszenie-70}
+          - {label: Nie — obejmie działkę sąsiada, next: wynik-pozwolenie}
+          - {label: Jeszcze nie wiem, next: nie-wiem-oddzialywanie}
+      - key: oddzialywanie
+        kind: pytanie
+        step: Obszar oddziaływania
+        question: Czy obszar oddziaływania domu zmieści się w całości na Twojej działce?
+        help: To teren wokół budynku, na którym przepisy ograniczają zabudowę, np. przez wymagane odległości. Ustali go projektant.
+        options:
+          - {label: Tak, next: wynik-zgloszenie}
+          - {label: Nie — obejmie działkę sąsiada, next: wynik-pozwolenie}
+          - {label: Jeszcze nie wiem, next: nie-wiem-oddzialywanie}
+      - key: wynik-zgloszenie-70
+        kind: wynik
+        outcome: zgloszenie
+        title: Wystarczy zgłoszenie budowy
+        body: >-
+          Wolno stojący dom jednorodzinny do 70 m² zabudowy, najwyżej dwukondygnacyjny, budowany na Twoje własne
+          potrzeby mieszkaniowe, nie wymaga pozwolenia na budowę — jeśli jego obszar oddziaływania mieści się
+          na Twojej działce. Zgłoszenie składasz w starostwie, a w mieście na prawach powiatu — u prezydenta miasta.
+        basis: Prawo budowlane, art. 29 ust. 1 pkt 1a · Dz.U. 2026 poz. 524
+        units: [prawo-budowlane-art-29-ust-1-pkt-1a]
+        links:
+          - {label: Złóż zgłoszenie w e-Budownictwie, url: "https://e-budownictwo.gunb.gov.pl/"}
+      - key: wynik-zgloszenie
+        kind: wynik
+        outcome: zgloszenie
+        title: Wystarczy zgłoszenie z projektem budowlanym
+        body: >-
+          Wolno stojący dom jednorodzinny, którego obszar oddziaływania mieści się w całości na Twojej działce,
+          możesz zbudować na zgłoszenie — bez pozwolenia na budowę. Do zgłoszenia dołączasz projekt budowlany.
+          Zgłoszenie składasz w starostwie, a w mieście na prawach powiatu — u prezydenta miasta.
+        basis: Prawo budowlane, art. 29 ust. 1 pkt 1 · Dz.U. 2026 poz. 524
+        units: [prawo-budowlane-art-29-ust-1-pkt-1]
+        links:
+          - {label: Złóż zgłoszenie w e-Budownictwie, url: "https://e-budownictwo.gunb.gov.pl/"}
+      - key: wynik-pozwolenie
+        kind: wynik
+        outcome: pozwolenie
+        title: Potrzebujesz pozwolenia na budowę
+        body: >-
+          Jeśli obszar oddziaływania domu wykracza poza Twoją działkę, nie zbudujesz go na zgłoszenie. Złóż wniosek
+          o pozwolenie na budowę w starostwie, a w mieście na prawach powiatu — u prezydenta miasta. Właściciele
+          działek w obszarze oddziaływania będą stronami postępowania.
+        basis: Prawo budowlane, art. 28 ust. 1 i art. 29 ust. 1 pkt 1 · Dz.U. 2026 poz. 524
+        units: [prawo-budowlane-art-28-ust-1, prawo-budowlane-art-29-ust-1-pkt-1]
+        links:
+          - {label: Złóż wniosek w e-Budownictwie, url: "https://e-budownictwo.gunb.gov.pl/"}
+      - key: nie-wiem-powierzchnia
+        kind: wynik
+        outcome: nie_wiadomo
+        title: Odpowiedź zależy od powierzchni zabudowy
+        body: >-
+          Dom do 70 m² zabudowy budowany na własne potrzeby ma prostsze zasady niż większy. Powierzchnię zabudowy
+          ustali projektant — wróć do kreatora, gdy ją poznasz.
+        basis: Prawo budowlane, art. 29 ust. 1 pkt 1 i 1a · Dz.U. 2026 poz. 524
+        units: [prawo-budowlane-art-29-ust-1-pkt-1, prawo-budowlane-art-29-ust-1-pkt-1a]
+      - key: nie-wiem-kondygnacje
+        kind: wynik
+        outcome: nie_wiadomo
+        title: Odpowiedź zależy od liczby kondygnacji
+        body: >-
+          Prostsze zasady dla domu do 70 m² dotyczą domów najwyżej dwukondygnacyjnych. Liczbę kondygnacji ustalisz
+          z projektantem — wróć do kreatora, gdy ją poznasz.
+        basis: Prawo budowlane, art. 29 ust. 1 pkt 1a · Dz.U. 2026 poz. 524
+        units: [prawo-budowlane-art-29-ust-1-pkt-1a]
+      - key: nie-wiem-oddzialywanie
+        kind: wynik
+        outcome: nie_wiadomo
+        title: Odpowiedź zależy od obszaru oddziaływania
+        body: >-
+          Jeśli obszar oddziaływania mieści się na Twojej działce, wystarczy zgłoszenie. Jeśli obejmie działkę
+          sąsiada — potrzebujesz pozwolenia na budowę. Obszar oddziaływania ustali projektant.
+        basis: Prawo budowlane, art. 28 ust. 1 i art. 29 ust. 1 pkt 1 · Dz.U. 2026 poz. 524
+        units: [prawo-budowlane-art-28-ust-1, prawo-budowlane-art-29-ust-1-pkt-1]
+      - key: poza-zakresem
+        kind: wynik
+        outcome: poza_zakresem
+        title: Tego przypadku kreator jeszcze nie obejmuje
+        body: >-
+          Opisaliśmy na razie tylko wolno stojące domy jednorodzinne. Dla garaży, wiat, altan, ogrodzeń i innych
+          obiektów sprawdź art. 29–31 Prawa budowlanego w oficjalnym tekście albo zapytaj w starostwie.
+        basis: Prawo budowlane, art. 29–31 · Dz.U. 2026 poz. 524
+        units: []
+        links:
+          - {label: Otwórz oficjalny tekst Prawa budowlanego, url: "https://eli.gov.pl/eli/DU/1994/414"}
+      - key: poza-zakresem-dom
+        kind: wynik
+        outcome: poza_zakresem
+        title: Dla tego domu kreator nie daje jeszcze odpowiedzi
+        body: >-
+          Przepisy o zgłoszeniu z art. 29 ust. 1 pkt 1 i 1a dotyczą domów wolno stojących. Zapytaj w starostwie,
+          jakie formalności dotyczą domu w zabudowie bliźniaczej albo szeregowej.
+        basis: Prawo budowlane, art. 28–29 · Dz.U. 2026 poz. 524
+        units: [prawo-budowlane-art-28-ust-1]
+
+synonyms:
+  - {term: płot, expansions: [ogrodzenie], note: Słowo potoczne}
+  - {term: parkan, expansions: [ogrodzenie], note: Słowo potoczne}
+  - {term: dom, expansions: [budynek mieszkalny jednorodzinny], note: Termin ustawowy}
+  - {term: domek, expansions: [budynek mieszkalny jednorodzinny], note: Słowo potoczne}
+  - {term: szopa, expansions: [budynek gospodarczy], note: Słowo potoczne}
+  - {term: komórka, expansions: [budynek gospodarczy], note: Słowo potoczne}
+  - {term: altanka, expansions: [altana], note: Zdrobnienie}
+  - {term: zadaszenie, expansions: [wiata], note: Słowo potoczne}
+  - {term: carport, expansions: [wiata], note: Zapożyczenie}
+  - {term: odbiór, expansions: [zakończenie budowy, pozwolenie na użytkowanie], note: Potocznie „odbiór budynku”}
+  - {term: wuzetka, expansions: [warunki zabudowy], note: Skrót potoczny}
+  - {term: wz, expansions: [warunki zabudowy], note: Skrót}
+  - {term: mpzp, expansions: [miejscowy plan zagospodarowania przestrzennego], note: Skrót}
+  - {term: plan miejscowy, expansions: [miejscowy plan zagospodarowania przestrzennego], note: Skrót potoczny}
+  - {term: pinb, expansions: [nadzór budowlany], note: Skrót urzędowy}
+  - {term: nadzór, expansions: [nadzór budowlany], note: Skrót potoczny}
+  - {term: starostwo, expansions: [starosta], note: Urząd}
+  - {term: sąsiad, expansions: [granica działki, obszar oddziaływania], note: Sytuacja, nie termin}
+  - {term: wt, expansions: [warunki techniczne], note: Skrót branżowy}
+  - {term: kpa, expansions: [kodeks postępowania administracyjnego], note: Skrót}
+  - {term: metraż, expansions: [powierzchnia zabudowy], note: Słowo potoczne}
+  - {term: piętro, expansions: [kondygnacja], note: Słowo potoczne}
+  - {term: poddasze, expansions: [kondygnacja], note: Poddasze z pokojami liczy się jako kondygnacja}

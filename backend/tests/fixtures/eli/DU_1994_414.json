@@ -1,0 +1,47 @@
+{
+  "ELI": "DU/1994/414",
+  "address": "WDU19940890414",
+  "publisher": "DU",
+  "year": 1994,
+  "pos": 414,
+  "volume": 89,
+  "title": "Ustawa z dnia 7 lipca 1994 r. - Prawo budowlane",
+  "displayAddress": "Dz.U. 1994 nr 89 poz. 414",
+  "type": "Ustawa",
+  "status": "obowiązujący",
+  "inForce": "IN_FORCE",
+  "promulgation": "1994-08-25",
+  "announcementDate": "1994-07-07",
+  "entryIntoForce": "1995-01-01",
+  "textHTML": false,
+  "textPDF": true,
+  "keywords": [
+    "budownictwo"
+  ],
+  "references": {
+    "Inf. o tekście jednolitym": [
+      {
+        "id": "DU/2024/725",
+        "date": "2024-05-15"
+      },
+      {
+        "id": "DU/2026/524",
+        "date": "2026-04-14"
+      }
+    ],
+    "Akty zmieniające": [
+      {
+        "id": "DU/2019/50",
+        "date": "2019-01-10"
+      },
+      {
+        "id": "DU/2025/100",
+        "date": "2025-06-01"
+      },
+      {
+        "id": "DU/2026/900",
+        "date": "2026-09-30"
+      }
+    ]
+  }
+}

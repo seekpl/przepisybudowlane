@@ -1,0 +1,19 @@
+{
+  "ELI": "DU/2026/524",
+  "publisher": "DU",
+  "year": 2026,
+  "pos": 524,
+  "title": "Obwieszczenie Marszałka Sejmu Rzeczypospolitej Polskiej w sprawie ogłoszenia jednolitego tekstu ustawy - Prawo budowlane",
+  "displayAddress": "Dz.U. 2026 poz. 524",
+  "type": "Obwieszczenie",
+  "status": "akt jednorazowy",
+  "inForce": "NOT_IN_FORCE",
+  "promulgation": "2026-04-14",
+  "announcementDate": "2026-03-30",
+  "legalStatusDate": "2026-03-20",
+  "textHTML": true,
+  "textPDF": true,
+  "references": {
+    "Tekst jednolity dla aktu": [{"id": "DU/1994/414"}]
+  }
+}

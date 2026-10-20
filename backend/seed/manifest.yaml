@@ -1,0 +1,88 @@
+# Manifest aktów MVP — PROJEKT do zatwierdzenia przez prawnika w etapie 0.
+#
+# Każda pozycja: identyfikator ELI aktu bazowego, typ, oficjalny URL, deklarowany format tekstu,
+# powiązania, właściciel merytoryczny i data weryfikacji manifestu. Synchronizacja (cli sync) bierze
+# z ELI metadane, najnowszy tekst jednolity i listę nowelizacji tylko dla aktów z in_mvp: true.
+#
+# Adresy tekstów jednolitych pochodzą z planu aplikacji (18.10.2026) i identyfikacji (19.10.2026);
+# synchronizacja ustali je sama na podstawie powiązań w ELI.
+acts:
+  - slug: prawo-budowlane
+    abbrev: PB
+    eli: DU/1994/414
+    short_title: Prawo budowlane
+    title: Ustawa z dnia 7 lipca 1994 r. – Prawo budowlane
+    citation_name: Ustawa – Prawo budowlane
+    act_kind: ustawa
+    area: Proces budowlany
+    in_mvp: true
+    official_url: https://eli.gov.pl/eli/DU/1994/414
+    text_format: html
+    owner: Do wskazania — prawnik-redaktor
+    manifest_verified_on: null
+    relations:
+      - rola: tekst jednolity
+        eli: DU/2026/524
+        opis: t.j. Dz.U. 2026 poz. 524 (wg planu aplikacji)
+
+  - slug: warunki-techniczne
+    abbrev: WT
+    eli: DU/2002/690
+    short_title: Warunki techniczne
+    title: >-
+      Rozporządzenie Ministra Infrastruktury z dnia 12 kwietnia 2002 r. w sprawie warunków technicznych,
+      jakim powinny odpowiadać budynki i ich usytuowanie
+    citation_name: >-
+      Rozporządzenie Ministra Infrastruktury w sprawie warunków technicznych, jakim powinny odpowiadać
+      budynki i ich usytuowanie
+    act_kind: rozporządzenie
+    area: Wymagania techniczne
+    in_mvp: true
+    official_url: https://eli.gov.pl/eli/DU/2002/690
+    text_format: html
+    owner: Do wskazania — prawnik-redaktor
+    manifest_verified_on: null
+    relations:
+      - rola: tekst jednolity
+        eli: DU/2022/1225
+        opis: t.j. Dz.U. 2022 poz. 1225
+      - rola: nowelizacja po tekście jednolitym
+        eli: DU/2023/2442
+        opis: Dz.U. 2023 poz. 2442
+      - rola: przepis przejściowy
+        opis: art. 102a Prawa budowlanego — stosowanie po utracie mocy
+
+  - slug: planowanie-przestrzenne
+    abbrev: UPZP
+    eli: DU/2003/717
+    short_title: Planowanie przestrzenne
+    title: Ustawa z dnia 27 marca 2003 r. o planowaniu i zagospodarowaniu przestrzennym
+    citation_name: Ustawa o planowaniu i zagospodarowaniu przestrzennym
+    act_kind: ustawa
+    area: Planowanie przestrzenne
+    in_mvp: true
+    official_url: https://eli.gov.pl/eli/DU/2003/717
+    text_format: html
+    owner: Do wskazania — prawnik-redaktor
+    manifest_verified_on: null
+    relations:
+      - rola: tekst jednolity
+        eli: DU/2026/538
+        opis: t.j. Dz.U. 2026 poz. 538 (wg planu aplikacji)
+      - rola: przepisy przejściowe
+        opis: ustawy zmieniające z przepisami przejściowymi reformy planowania (plan ogólny, warunki zabudowy)
+
+  - slug: kpa
+    abbrev: KPA
+    eli: DU/1960/168
+    short_title: Kodeks postępowania administracyjnego
+    title: Ustawa z dnia 14 czerwca 1960 r. – Kodeks postępowania administracyjnego
+    citation_name: Ustawa – Kodeks postępowania administracyjnego
+    act_kind: ustawa
+    area: Postępowanie
+    in_mvp: true
+    official_url: https://eli.gov.pl/eli/DU/1960/168
+    text_format: html
+    owner: Do wskazania — prawnik-redaktor
+    manifest_verified_on: null
+    relations: []
