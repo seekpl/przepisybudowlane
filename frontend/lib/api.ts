@@ -3,6 +3,7 @@ import "server-only";
 import type {
   Act,
   DataStatus,
+  Definition,
   GlossaryTerm,
   Guide,
   GuideSummary,
@@ -54,6 +55,7 @@ export const api = {
   search: (query: string) => get<SearchResult>(`/szukaj?q=${q(query)}`),
   synonyms: () => get<Synonym[]>("/synonimy"),
   glossary: () => get<GlossaryTerm[]>("/slowniczek"),
+  definitions: () => get<Definition[]>("/definicje"),
   guides: () => get<GuideSummary[]>("/sciezki"),
   guide: (slug: string) => getOrNull<Guide>(`/sciezki/${q(slug)}`),
   tree: (slug: string) => getOrNull<Tree>(`/kreatory/${q(slug)}`),

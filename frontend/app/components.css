@@ -106,3 +106,12 @@ body { margin: 0; background: var(--surface); color: var(--ink); font-family: va
 .pb-result-kicker { display: flex; align-items: center; gap: var(--space-1); color: var(--primary); }
 .pb-result-basis { background: var(--surface-sunken); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); align-items: flex-start; }
 .pb-result-basis .ui-label { color: var(--ink-muted); }
+
+/* Słowniczek: metryka definicji ustawowej — odesłanie do przepisu i aktualność aktu w jednym wierszu. */
+.pb-def-meta {
+  margin-top: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

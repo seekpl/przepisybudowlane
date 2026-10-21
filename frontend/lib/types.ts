@@ -195,6 +195,20 @@ export interface GlossaryTerm {
   version_id: number;
 }
 
+/** Definicja ustawowa — dosłowne brzmienie punktu przepisu definicyjnego. */
+export interface Definition {
+  term: string;
+  term_in_text: string;
+  paragraphs: Paragraph[];
+  unit_slug: string;
+  display_label: string;
+  act_slug: string;
+  act_title: string;
+  journal: string;
+  freshness: FreshnessStatus;
+  url: string;
+}
+
 export interface GuideStep {
   title: string;
   who: string | null;

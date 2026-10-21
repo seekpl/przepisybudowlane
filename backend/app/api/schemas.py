@@ -213,6 +213,21 @@ class GlossaryTermOut(BaseModel):
     version_id: int
 
 
+class DefinitionOut(BaseModel):
+    """Definicja ustawowa — dosłowne brzmienie punktu przepisu definicyjnego (arkusz, działanie 3.2)."""
+
+    term: str = Field(description="Pojęcie w mianowniku (do alfabetu i wyszukiwania)")
+    term_in_text: str = Field(description="Pojęcie tak, jak stoi w przepisie")
+    paragraphs: list[Paragraph]
+    unit_slug: str
+    display_label: str
+    act_slug: str
+    act_title: str
+    journal: str
+    freshness: FreshnessStatus
+    url: str
+
+
 class GuideStepOut(BaseModel):
     title: str
     who: str | None

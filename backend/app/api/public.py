@@ -11,7 +11,9 @@ from app.api import schemas as o
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.models import DecisionTree, Guide, LegalAct, LegalUnit, SearchSynonym
+from app.modules.content.definitions import statutory_definitions
 from app.modules.editorial.workflow import public_version
+from app.modules.freshness import service as fresh
 from app.modules.ops.status import status as ops_status
 from app.modules.reports.service import ReportError, create_report
 from app.modules.search.service import search as run_search
@@ -148,6 +150,31 @@ def synonyms(s: Session = Depends(get_session)) -> list[o.SynonymOut]:
 @router.get("/slowniczek", response_model=list[o.GlossaryTermOut])
 def glossary(s: Session = Depends(get_session)) -> list[o.GlossaryTermOut]:
     return p.glossary_out(s)
+
+
+@router.get(
+    "/definicje",
+    response_model=list[o.DefinitionOut],
+    summary="Definicje ustawowe z przyjętych tekstów aktów — cytat, nie interpretacja",
+)
+def definitions(s: Session = Depends(get_session)) -> list[o.DefinitionOut]:
+    acts = {a.slug: a for a in s.scalars(select(LegalAct))}
+    status = {slug: o.as_status(fresh.for_act(s, a).status) for slug, a in acts.items()}
+    return [
+        o.DefinitionOut(
+            term=d.term,
+            term_in_text=d.term_in_text,
+            paragraphs=[o.Paragraph(**x) for x in d.paragraphs],
+            unit_slug=d.unit_slug,
+            display_label=f"{acts[d.act_slug].abbrev} {d.unit_label}",
+            act_slug=d.act_slug,
+            act_title=d.act_title,
+            journal=d.journal,
+            freshness=status[d.act_slug],
+            url=f"/przepis/{d.unit_slug}",
+        )
+        for d in statutory_definitions(s)
+    ]
 
 
 @router.get("/sciezki", response_model=list[o.GuideSummary])

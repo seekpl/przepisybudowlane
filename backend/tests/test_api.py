@@ -166,3 +166,44 @@ def test_openapi_contract_is_generated(api: TestClient) -> None:
     spec = api.get("/openapi.json").json()
     assert "/api/v1/przepisy/{slug}" in spec["paths"]
     assert "FreshnessOut" in spec["components"]["schemas"]
+
+
+def test_statutory_definitions_are_verbatim_with_nominative_terms(seeded: Session, api: TestClient) -> None:
+    defs = api.get("/api/v1/definicje").json()
+    # Syntetyczny t.j. WT zawiera tylko § 12 i § 13 — definicji (§ 3) w nim nie ma.
+    assert defs == []
+
+
+def test_definitions_from_real_consolidated_text() -> None:
+    from pathlib import Path
+
+    import pytest
+
+    from app.modules.content.definitions import extract, nominative
+    from app.modules.parser.units import parse_units
+
+    html = (
+        Path(__file__).parent
+        / "fixtures"
+        / "eli"
+        / "recorded"
+        / "acts"
+        / "DU"
+        / "2022"
+        / "1225"
+        / "text.html"
+    )
+    if not html.exists():
+        pytest.skip("brak nagrania t.j. warunków technicznych")
+    units = {k: u.content for k, u in parse_units(html.read_text(encoding="utf-8")).units.items()}
+    found = {key: (term, paras) for key, term, paras in extract(units)}
+    term, paras = found["par_3.pkt_1a"]
+    assert term == "działce budowlanej" and nominative(term) == "działka budowlana"
+    assert paras[0]["unit"] == "1a)" and paras[0]["text"].startswith(
+        "działce budowlanej - należy przez to rozumieć"
+    )
+    # Definicja z wyliczeniem liter: cały punkt, dosłownie.
+    term, paras = found["par_3.pkt_4"]
+    assert nominative(term) == "budynek mieszkalny"
+    assert [p["unit"] for p in paras] == ["4)", "a)", "b)"]
+    assert len(found) >= 25
