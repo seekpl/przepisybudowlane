@@ -1,11 +1,16 @@
 # Odpowiedzi ELI do testów
 
-## `DU_*.json`, `DU_*.html` — dane syntetyczne
+## `DU_*.json`, `DU_*.html` — dane testowe
 
-Mają kształt odpowiedzi ELI API Kancelarii Sejmu (`/eli/acts/{wydawca}/{rok}/{pozycja}` i `/text.html`)
-opisany w dokumentacji, ale nie pochodzą z produkcyjnego API. Służą do testów zachowania synchronizacji
-(idempotencja, wykrywanie zmian, awarie, alarm kontraktu). Teksty przepisów w plikach HTML są danymi
-testowymi, nie źródłem prawa.
+Odpowiedzi w kształcie ELI API Kancelarii Sejmu (`/eli/acts/{wydawca}/{rok}/{pozycja}` i `/text.html`)
+do testów zachowania synchronizacji (idempotencja, wykrywanie zmian, awarie, alarm kontraktu) i fikstury
+`seeded` (manifest → synchronizacja → treści, jak na produkcji):
+
+- Prawo budowlane (`DU_1994_414`, `DU_2026_524`, nowelizacje `DU_2025_100`, `DU_2026_900`) — syntetyczne;
+  teksty przepisów w HTML są danymi testowymi, nie źródłem prawa;
+- warunki techniczne (`DU_2002_690`, `DU_2022_1225`) — metadane odwzorowują nagranie z 21.10.2026
+  (akt uznany za uchylony, t.j. bez `legalStatusDate`), a `DU_2022_1225.html` to wycinek nagranego
+  HTML (§ 12 i § 13 w oryginalnym układzie ELI).
 
 ## `recorded/` — nagrania z prawdziwego ELI
 

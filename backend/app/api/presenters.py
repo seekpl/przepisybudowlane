@@ -238,14 +238,16 @@ def provision(
             expl_out = _explanation_out(s, unit, chosen) if chosen.state != S.COFNIETY else None
 
     tv = shown_tv
-    journal = tv.journal_display if tv else "—"
+    # Bez przyjętego tekstu metryka wskazuje tekst z ELI czekający na kontrolę — tam jest oficjalne brzmienie.
+    source = tv or fresh.pending_text(s, act.id, None)
+    journal = source.journal_display if source else "—"
     citation = o.CitationOut(
         act=act.citation_name,
         journal=journal,
         unit=unit.label,
-        as_of=tv.legal_status_date if tv else None,
-        eli=(tv.source_eli if tv and tv.source_eli else act.eli),
-        url=eli_url(tv.source_eli if tv and tv.source_eli else act.eli),
+        as_of=source.legal_status_date if source else None,
+        eli=(source.source_eli if source and source.source_eli else act.eli),
+        url=eli_url(source.source_eli if source and source.source_eli else act.eli),
         text=", ".join(x for x in (act.citation_name, journal, unit.label) if x),
     )
 

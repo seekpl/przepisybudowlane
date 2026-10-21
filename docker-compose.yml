@@ -39,7 +39,10 @@ services:
   # Synchronizacja z ELI co godzinę (PB_SYNC_INTERVAL_MINUTES). Wymaga dostępu do api.sejm.gov.pl.
   worker:
     build: ./backend
-    environment: *backend-env
+    environment:
+      <<: *backend-env
+      # Treści demonstracyjne czekają na tekst z ELI — worker dokańcza je po każdej synchronizacji.
+      PB_SEED_AFTER_SYNC: "true"
     command: python -m app.cli worker
     volumes:
       - archive:/app/var/archive

@@ -4,111 +4,30 @@
 # zatwierdzony → opublikowany) z kontami „demo-redaktor” i „demo-recenzent”, ale żadna z nich nie
 # była czytana przez prawnika. Interfejs oznacza je etykietą „Treść demonstracyjna”.
 #
-# Tekst prawa:
-# - Warunki techniczne, § 12 ust. 1 — brzmienie sprawdzone ze źródłem 19.10.2026 (identyfikacja
-#   „Przepisy budowlane”, komponent ProvisionCard); typ: własna kompilacja (t.j. 2022 + zm. 2023).
-# - Prawo budowlane, art. 28 ust. 1 i art. 29 ust. 1 pkt 1 i 1a — wpisane ręcznie, NIE porównane
-#   z Dziennikiem Ustaw; dlatego typ „nierozpoznany” i status „nie potwierdzono”. Synchronizacja
-#   z ELI zastąpi je tekstem urzędowym.
+# Tekstu prawa tu nie ma i być nie może (loader odrzuca klucze z tekstem, a baza — wersję tekstu bez
+# migawki ELI): brzmienie przepisów, typ tekstu, stan prawny i nowelizacje pochodzą z synchronizacji z ELI.
+# Ten plik odsyła do jednostek po kluczach i dodaje tylko to, czego w ELI nie ma: tytuły kart,
+# objaśnienia, słowniczek, ścieżki, kreator i synonimy wyszukiwarki.
 
-text_versions:
+# Metadane redakcyjne jednostek z ELI (tytuł karty, wyróżnienie na stronie startowej, rysunek).
+units:
   - act: warunki-techniczne
-    text_type: kompilacja
-    source_eli: DU/2022/1225
-    journal_display: Dz.U. 2022 poz. 1225, zm. 2023 poz. 2442
-    legal_status_date: 2026-09-19
-    incorporated: [DU/2023/2442]
-    note: >-
-      Kompilacja redakcji: tekst jednolity z 2022 r. nie zawiera zmiany z Dz.U. 2023 poz. 2442.
-      Brzmienie § 12 ust. 1 sprawdzone ze źródłem 19.10.2026.
-    units:
-      - key: par_12.ust_1
-        title: Odległość budynku od granicy działki
-        featured: true
-        illustration: rzut-odleglosc-od-granicy
-        content:
-          - unit: "§ 12. 1."
-            text: >-
-              Jeżeli z przepisów § 13, § 19, § 23, § 36, § 40, § 60 i § 271–273 lub przepisów odrębnych
-              określających dopuszczalne odległości niektórych budowli od budynków nie wynikają inne wymagania,
-              budynek na działce budowlanej należy sytuować w odległości od granicy tej działki nie mniejszej niż:
-          - unit: "1)"
-            text: 4 m – w przypadku budynku zwróconego ścianą z oknami lub drzwiami w stronę tej granicy;
-          - unit: "2)"
-            text: 3 m – w przypadku budynku zwróconego ścianą bez okien lub drzwi w stronę tej granicy;
-          - unit: "3)"
-            text: >-
-              5 m – w przypadku budynku mieszkalnego wielorodzinnego o wysokości ponad 4 kondygnacji nadziemnych,
-              zwróconego ścianą z oknami lub drzwiami w stronę tej granicy;
-          - unit: "4)"
-            text: >-
-              5 m – w przypadku budynku mieszkalnego wielorodzinnego o wysokości ponad 4 kondygnacji nadziemnych,
-              zwróconego ścianą bez okien lub drzwi w stronę tej granicy.
-
+    key: par_12.ust_1
+    title: Odległość budynku od granicy działki
+    featured: true
+    illustration: rzut-odleglosc-od-granicy
   - act: prawo-budowlane
-    text_type: nierozpoznany
-    source_eli: DU/2026/524
-    journal_display: Dz.U. 2026 poz. 524
-    legal_status_date: null
-    incorporated: []
-    note: >-
-      Tekst wpisany ręcznie w prototypie i nieporównany z Dziennikiem Ustaw. Do zastąpienia tekstem
-      z synchronizacji ELI.
-    units:
-      - key: art_28.ust_1
-        title: Pozwolenie na budowę — zasada
-        featured: true
-        content:
-          - unit: "Art. 28. 1."
-            text: >-
-              Roboty budowlane można rozpocząć jedynie na podstawie decyzji o pozwoleniu na budowę,
-              z zastrzeżeniem art. 29–31.
-      - key: art_29.ust_1.pkt_1
-        title: Dom jednorodzinny na zgłoszenie
-        featured: true
-        content:
-          - unit: "Art. 29. 1."
-            text: >-
-              Nie wymaga decyzji o pozwoleniu na budowę, ale wymaga zgłoszenia, o którym mowa w art. 30, budowa:
-          - unit: "1)"
-            text: >-
-              wolno stojących budynków mieszkalnych jednorodzinnych, których obszar oddziaływania mieści się
-              w całości na działce lub działkach, na których zostały zaprojektowane;
-      - key: art_29.ust_1.pkt_1a
-        title: Dom do 70 m² na własne potrzeby
-        featured: true
-        content:
-          - unit: "Art. 29. 1."
-            text: >-
-              Nie wymaga decyzji o pozwoleniu na budowę, ale wymaga zgłoszenia, o którym mowa w art. 30, budowa:
-          - unit: "1a)"
-            text: >-
-              wolno stojących, nie więcej niż dwukondygnacyjnych budynków mieszkalnych jednorodzinnych
-              o powierzchni zabudowy do 70 m², których obszar oddziaływania mieści się w całości na działce
-              lub działkach, na których zostały zaprojektowane, a budowa jest prowadzona w celu zaspokojenia
-              własnych potrzeb mieszkaniowych inwestora;
-
-validity:
-  - act: warunki-techniczne
-    kind: utracil_moc
-    valid_from: 2026-09-20
-    basis: Stan prawny sprawdzony 19.10.2026 (identyfikacja „Przepisy budowlane”).
-  - act: warunki-techniczne
-    kind: stosowany_przejsciowo
-    valid_from: 2026-09-20
-    basis: art. 102a Prawa budowlanego
-    title: Te warunki techniczne utraciły moc 20 września 2026 r.
-    description: >-
-      Nowe rozporządzenie nie zostało jeszcze ogłoszone. Przez 18 miesięcy od 20 września 2026 r. projekt
-      możesz przygotować według tych przepisów, jeśli złożysz oświadczenie inwestora (art. 102a Prawa budowlanego).
-
-verifications:
-  - act: warunki-techniczne
-    unit: par_12.ust_1
-    verified_at: 2026-10-19T12:00:00+02:00
-    verified_by: Redakcja projektu identyfikacji
-    method: Porównanie z Dz.U. 2022 poz. 1225 i Dz.U. 2023 poz. 2442
-    scope: brzmienie § 12 ust. 1 i stan prawny (utrata mocy, art. 102a Prawa budowlanego)
+    key: art_28.ust_1
+    title: Pozwolenie na budowę — zasada
+    featured: true
+  - act: prawo-budowlane
+    key: art_29.ust_1.pkt_1
+    title: Dom jednorodzinny na zgłoszenie
+    featured: true
+  - act: prawo-budowlane
+    key: art_29.ust_1.pkt_1a
+    title: Dom do 70 m² na własne potrzeby
+    featured: true
 
 explanations:
   - act: warunki-techniczne

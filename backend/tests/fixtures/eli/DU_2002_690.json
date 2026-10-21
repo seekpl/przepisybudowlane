@@ -1,0 +1,39 @@
+{
+  "ELI": "DU/2002/690",
+  "publisher": "DU",
+  "year": 2002,
+  "pos": 690,
+  "title": "Rozporządzenie Ministra Infrastruktury z dnia 12 kwietnia 2002 r. w sprawie warunków technicznych, jakim powinny odpowiadać budynki i ich usytuowanie.",
+  "displayAddress": "Dz.U. 2002 nr 75 poz. 690",
+  "type": "Rozporządzenie",
+  "status": "uznany za uchylony",
+  "inForce": "NOT_IN_FORCE",
+  "promulgation": "2002-06-15",
+  "announcementDate": "2002-04-12",
+  "entryIntoForce": "2002-12-16",
+  "validFrom": "2002-12-16",
+  "repealDate": "2026-09-21",
+  "textHTML": false,
+  "textPDF": true,
+  "references": {
+    "Inf. o tekście jednolitym": [
+      {
+        "id": "DU/2022/1225"
+      },
+      {
+        "id": "DU/2019/1065"
+      }
+    ],
+    "Uchylenia wynikające z": [
+      {
+        "id": "DU/2019/1696",
+        "date": "2026-09-21"
+      }
+    ],
+    "Podstawa prawna": [
+      {
+        "id": "DU/1994/414"
+      }
+    ]
+  }
+}

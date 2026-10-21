@@ -99,11 +99,13 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - name: Backend z treściami startowymi
+      - name: Backend — tekst prawa z nagrań ELI, potem treści startowe
         working-directory: backend
         run: |
           uv sync --frozen --no-dev
           uv run python -m app.cli migrate
+          uv run python -m app.cli seed --manifest-only
+          uv run python -m app.cli sync --replay tests/fixtures/eli/recorded
           uv run python -m app.cli seed
           nohup uv run uvicorn app.main:app --port 8000 > ../backend.log 2>&1 &
       - name: Frontend (build produkcyjny)

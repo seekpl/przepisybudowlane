@@ -13,7 +13,7 @@ os.environ.setdefault("PB_DATABASE_URL", "postgresql+psycopg://postgres@localhos
 os.environ["PB_EDITOR_TOKENS"] = "anna=redaktor:tok-anna;jan=recenzent:tok-jan;ola=redaktor+recenzent:tok-ola"
 
 from fastapi.testclient import TestClient
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app import clock
@@ -62,13 +62,42 @@ def session() -> Iterator[Session]:
         s.close()
 
 
-@pytest.fixture
-def seeded(session: Session) -> Session:
-    from app.modules.content.seed import seed_all
+# Akty, dla których syntetyczne odpowiedzi ELI mają tekst (Prawo budowlane, warunki techniczne).
+SYNCED_ACTS = ("prawo-budowlane", "warunki-techniczne")
 
-    seed_all(session)
+
+@pytest.fixture
+def manifest(session: Session) -> Session:
+    """Sam manifest aktów — stan przed pierwszą synchronizacją."""
+    from app.modules.content.seed import load_manifest
+
+    load_manifest(session)
     session.commit()
     return session
+
+
+@pytest.fixture
+def seeded(manifest: Session, make_sync) -> Session:  # type: ignore[no-untyped-def]
+    """Kolejność jak na produkcji: manifest → synchronizacja z ELI (tu: odpowiedzi syntetyczne) → treści."""
+    from sqlalchemy import update
+
+    from app.models import LegalAct
+    from app.modules.content.seed import load_content
+    from app.modules.search.service import rebuild_index
+
+    s = manifest
+    in_mvp = dict(s.execute(select(LegalAct.slug, LegalAct.in_mvp)).all())
+    s.execute(update(LegalAct).where(LegalAct.slug.not_in(SYNCED_ACTS)).values(in_mvp=False))
+    s.commit()
+    report = make_sync().run("seed-testowy")
+    assert report.status == "sukces", report.errors
+    for slug, flag in in_mvp.items():
+        s.execute(update(LegalAct).where(LegalAct.slug == slug).values(in_mvp=flag))
+    s.commit()
+    load_content(s)
+    rebuild_index(s)
+    s.commit()
+    return s
 
 
 @pytest.fixture

@@ -39,7 +39,9 @@ docker compose up --build
 - API i jego dokumentacja: <http://localhost:8000/docs>
 - panel redakcji: <http://localhost:3000/redakcja> (tokeny w `PB_EDITOR_TOKENS`, domyślnie tylko do testów lokalnych)
 
-Kontener `worker` co godzinę synchronizuje akty z ELI API Kancelarii Sejmu (wymaga dostępu do `api.sejm.gov.pl`).
+Kontener `worker` co godzinę synchronizuje akty z ELI API Kancelarii Sejmu (wymaga dostępu do `api.sejm.gov.pl`)
+i po każdej synchronizacji dokańcza treści startowe. Tekstu prawa nie ma w danych startowych — do pierwszej
+synchronizacji karty przepisów są puste i mówią to wprost.
 
 ## Uruchomienie bez Dockera
 
@@ -50,7 +52,10 @@ Wymagane: PostgreSQL 16, Python 3.12+ z [uv](https://docs.astral.sh/uv/), Node.j
 cd backend
 uv sync
 export PB_DATABASE_URL=postgresql+psycopg://postgres@localhost:5432/przepisy
-uv run python -m app.cli migrate && uv run python -m app.cli seed
+uv run python -m app.cli migrate
+uv run python -m app.cli seed --manifest-only     # manifest aktów
+uv run python -m app.cli sync                     # tekst prawa z ELI (bez sieci: --replay tests/fixtures/eli/recorded)
+uv run python -m app.cli seed                     # treści startowe przypięte do jednostek z ELI
 uv run uvicorn app.main:app --port 8000
 
 # frontend (drugi terminal)

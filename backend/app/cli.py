@@ -102,7 +102,9 @@ def _worker() -> None:
     settings = get_settings()
     while True:
         try:
-            _sync("harmonogram")
+            status = _sync("harmonogram")
+            if settings.seed_after_sync and status in ("sukces", "czesciowy"):
+                _seed()
             with get_sessionmaker()() as s:
                 purged = purge_expired_emails(s)
                 s.commit()

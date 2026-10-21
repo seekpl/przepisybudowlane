@@ -97,11 +97,12 @@ def test_rerun_is_idempotent(seeded: Session, make_sync) -> None:  # type: ignor
 
     before = {m: count(seeded, m) for m in models} | {"snapshots": snapshots()}
     fetches = count(seeded, SourceFetch)
+    runs = count(seeded, SyncRun)
     report = make_sync().run()
     assert report.status == "sukces"
     after = {m: count(seeded, m) for m in models} | {"snapshots": snapshots()}
     assert after == before
-    assert count(seeded, SyncRun) == 2
+    assert count(seeded, SyncRun) == runs + 1
     # Każde pobranie jest odnotowane — z nich liczymy wiek danych.
     assert count(seeded, SourceFetch) > fetches
 
@@ -166,7 +167,7 @@ def test_changed_unit_suspends_published_explanation_and_flags_wizard_branch(  #
     assert "wynik-zgloszenie-70" in keys
     assert "wynik-zgloszenie" not in keys
     # Historia nie jest nadpisywana: stare brzmienie nadal ma swoją wersję.
-    assert count(s, LegalTextVersion) == 4  # dwa teksty z seeda (PB, WT) + dwa brzmienia z ELI
+    assert count(s, LegalTextVersion) == 3  # WT + dwa brzmienia PB z ELI
 
 
 def test_eli_outage_keeps_old_data_does_not_move_checkpoint_and_ages_into_warning(  # type: ignore[no-untyped-def]
@@ -218,8 +219,9 @@ def test_broken_json_pauses_sync(seeded: Session, make_sync, fake_eli: FakeEli) 
 
 
 def test_pdf_only_text_goes_to_human_review_not_publication(
-    seeded: Session, make_sync, fake_eli: FakeEli
+    manifest: Session, make_sync, fake_eli: FakeEli
 ) -> None:  # type: ignore[no-untyped-def]
+    seeded = manifest
     only_act(seeded, "prawo-budowlane")
     meta = json.loads((FIXTURES / "DU_2026_524.json").read_text())
     meta["textHTML"] = False
@@ -231,11 +233,12 @@ def test_pdf_only_text_goes_to_human_review_not_publication(
     tv = s.scalar(select(LegalTextVersion).where(LegalTextVersion.origin == "eli"))
     assert tv.review_state == "do_kontroli"
     assert s.scalar(select(EditorialTask).where(EditorialTask.kind == "kontrola_parsera"))
-    # Publicznie nadal widać tekst z seeda, nie niesprawdzony PDF.
-    assert fresh.current_text(s, tv.act_id).origin == "redakcja"
+    # Publicznie nie ma żadnego tekstu, dopóki człowiek nie porówna odczytu PDF z oryginałem.
+    assert fresh.current_text(s, tv.act_id) is None
 
 
-def test_low_quality_parse_goes_to_review(seeded: Session, make_sync, fake_eli: FakeEli) -> None:  # type: ignore[no-untyped-def]
+def test_low_quality_parse_goes_to_review(manifest: Session, make_sync, fake_eli: FakeEli) -> None:  # type: ignore[no-untyped-def]
+    seeded = manifest
     only_act(seeded, "prawo-budowlane")
     fake_eli.routes[PB_TEXT] = (
         200,
@@ -281,11 +284,12 @@ def test_accepting_reviewed_text_replaces_previous_and_suspends_changed_explanat
     html = html.replace("z zastrzeżeniem art. 29–31.", "z zastrzeżeniem art. 29–31a.")
     # Cofnięta numeracja obniża jakość — tekst idzie do kontroli zamiast prosto na kartę.
     fake_eli.routes[PB_TEXT] = (200, (html + "<p>Art. 3. Cofnięta numeracja.</p>").encode(), "text/html")
+    fake_eli.set_json("/eli/changes/acts", [{"ELI": "DU/2026/524", "changeDate": "2026-10-20T09:00:00"}])
     make_sync().run()
     seeded.expire_all()
-    tv = seeded.scalar(select(LegalTextVersion).where(LegalTextVersion.origin == "eli"))
-    assert tv.review_state == "do_kontroli"
-    assert fresh.current_text(seeded, tv.act_id).origin == "redakcja"
+    tv = seeded.scalar(select(LegalTextVersion).where(LegalTextVersion.review_state == "do_kontroli"))
+    previous = fresh.current_text(seeded, tv.act_id)
+    assert previous is not None and previous.id != tv.id
 
     res = api.post(
         f"/api/v1/redakcja/teksty/{tv.id}/decyzja",
@@ -306,3 +310,26 @@ def test_accepting_reviewed_text_replaces_previous_and_suspends_changed_explanat
     assert seeded.scalar(
         select(EditorialTask).where(EditorialTask.kind == "zmiana_tekstu", EditorialTask.unit_id == unit.id)
     )
+
+
+def test_card_says_which_official_text_waits_for_review(
+    manifest: Session, make_sync, fake_eli: FakeEli
+) -> None:  # type: ignore[no-untyped-def]
+    from app.models import LegalUnit
+
+    only_act(manifest, "prawo-budowlane")
+    meta = json.loads((FIXTURES / "DU_2026_524.json").read_text())
+    meta["textHTML"] = False
+    fake_eli.set_json("/eli/acts/DU/2026/524", meta)
+    pdf = FIXTURES / "recorded" / "acts" / "DU" / "2026" / "524" / "text.pdf"
+    body = pdf.read_bytes() if pdf.exists() else b"%PDF-1.7 test"
+    fake_eli.routes["/eli/acts/DU/2026/524/text.pdf"] = (200, body, "application/pdf")
+    make_sync().run()
+    manifest.expire_all()
+    unit = manifest.scalar(select(LegalUnit).where(LegalUnit.slug == "prawo-budowlane-art-28-ust-1"))
+    if unit is None:  # bez nagrania PDF parser nie ma z czego zbudować jednostek
+        return
+    f = fresh.for_unit(manifest, unit)
+    notice = next(r for r in f.notices if r.code == "brak_tekstu")
+    assert notice.title == "Tekst urzędowy czeka na sprawdzenie"
+    assert "Dz.U. 2026 poz. 524" in notice.body

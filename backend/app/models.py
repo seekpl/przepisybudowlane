@@ -17,6 +17,7 @@ from typing import Any
 from sqlalchemy import (
     JSON,
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -118,7 +119,10 @@ class SourceSnapshot(Base):
     """Surowa odpowiedź źródła. Treść leży w archiwum pod kluczem SHA-256, tu metryka."""
 
     __tablename__ = "source_snapshot"
-    __table_args__ = (UniqueConstraint("url", "sha256", name="uq_snapshot_url_sha"),)
+    __table_args__ = (
+        UniqueConstraint("url", "sha256", name="uq_snapshot_url_sha"),
+        CheckConstraint("sha256 ~ '^[0-9a-f]{64}$'", name="ck_snapshot_sha256"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     act_id: Mapped[int | None] = mapped_column(ForeignKey("legal_act.id"))
@@ -171,8 +175,14 @@ class SourceVerification(Base):
 
 
 class LegalTextVersion(Base):
+    """Wersja tekstu aktu. Niezmiennik (arkusz, działanie 2.1): każda pochodzi z migawki ELI z sumą SHA-256 —
+    tekstu prawa nie da się wpisać ręcznie, ani w danych startowych, ani w panelu."""
+
     __tablename__ = "legal_text_version"
-    __table_args__ = (UniqueConstraint("act_id", "snapshot_id", name="uq_text_version_snapshot"),)
+    __table_args__ = (
+        UniqueConstraint("act_id", "snapshot_id", name="uq_text_version_snapshot"),
+        CheckConstraint("origin = 'eli'", name="ck_text_version_from_eli"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     act_id: Mapped[int] = mapped_column(ForeignKey("legal_act.id"))
@@ -183,8 +193,8 @@ class LegalTextVersion(Base):
     published_on: Mapped[date | None] = mapped_column(Date)
     # ELI nowelizacji naniesionych w tym tekście (dla kompilacji i tekstów jednolitych).
     incorporated: Mapped[list[str]] = mapped_column(Json, default=list)
-    snapshot_id: Mapped[int | None] = mapped_column(ForeignKey("source_snapshot.id"))
-    origin: Mapped[str] = mapped_column(String(20))
+    snapshot_id: Mapped[int] = mapped_column(ForeignKey("source_snapshot.id"))
+    origin: Mapped[str] = mapped_column(String(20), default="eli")
     parser_version: Mapped[str | None] = mapped_column(String(40))
     parse_quality: Mapped[float | None] = mapped_column(Float)
     review_state: Mapped[str] = mapped_column(String(20))

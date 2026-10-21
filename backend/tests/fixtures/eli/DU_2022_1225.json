@@ -1,0 +1,29 @@
+{
+  "ELI": "DU/2022/1225",
+  "publisher": "DU",
+  "year": 2022,
+  "pos": 1225,
+  "title": "Obwieszczenie Ministra Rozwoju i Technologii z dnia 15 kwietnia 2022 r. w sprawie ogłoszenia jednolitego tekstu rozporządzenia Ministra Infrastruktury w sprawie warunków technicznych, jakim powinny odpowiadać budynki i ich usytuowanie",
+  "displayAddress": "Dz.U. 2022 poz. 1225",
+  "type": "Obwieszczenie",
+  "status": "uznany za uchylony",
+  "inForce": "NOT_IN_FORCE",
+  "promulgation": "2022-06-09",
+  "announcementDate": "2022-04-15",
+  "repealDate": "2026-09-21",
+  "textHTML": true,
+  "textPDF": true,
+  "references": {
+    "Tekst jednolity dla aktu": [
+      {
+        "id": "DU/2002/690"
+      }
+    ],
+    "Uchylenia wynikające z": [
+      {
+        "id": "DU/2019/1696",
+        "date": "2026-09-21"
+      }
+    ]
+  }
+}

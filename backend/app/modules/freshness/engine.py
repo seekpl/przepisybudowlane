@@ -75,6 +75,7 @@ class FreshnessInput:
     amendments: list[Amendment] = field(default_factory=list)
     unit_missing_from: str | None = None  # publikator najnowszego tekstu, w którym jednostki już nie ma
     source_paused: str | None = None  # tytuł otwartego alarmu źródła (synchronizacja wstrzymana)
+    pending_review: str | None = None  # publikator nowszego tekstu z ELI, który czeka na kontrolę człowieka
 
 
 @dataclass(frozen=True)
@@ -154,8 +155,26 @@ def evaluate(inp: FreshnessInput) -> Freshness:
             Reason(
                 "niepotwierdzona",
                 "brak_tekstu",
-                "Nie mamy sprawdzonego tekstu tego przepisu",
-                "Tekst czeka na kontrolę redakcji. Skorzystaj z oficjalnego tekstu w metryce.",
+                "Tekst urzędowy czeka na sprawdzenie"
+                if inp.pending_review
+                else "Nie mamy sprawdzonego tekstu tego przepisu",
+                (
+                    f"ELI udostępnia {inp.pending_review} tylko w PDF albo w układzie, którego nie odczytaliśmy "
+                    "z pewnością. Pokażemy go, gdy redakcja porówna odczyt z oryginałem. "
+                    if inp.pending_review
+                    else "Tekst czeka na kontrolę redakcji. "
+                )
+                + "Do tego czasu skorzystaj z oficjalnego tekstu — link znajdziesz w metryce.",
+            )
+        )
+    elif inp.pending_review:
+        reasons.append(
+            Reason(
+                "niepotwierdzona",
+                "nowy_tekst_do_kontroli",
+                "Nowszy tekst urzędowy czeka na sprawdzenie",
+                f"W ELI jest już {inp.pending_review}. Pokazujemy poprzednie brzmienie, dopóki redakcja nie porówna "
+                "nowego odczytu z oryginałem. " + CHECK_OFFICIAL,
             )
         )
     elif inp.text_type == TextType.NIEROZPOZNANY:

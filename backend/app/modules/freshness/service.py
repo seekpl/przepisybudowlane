@@ -138,7 +138,23 @@ def _input(
         ],
         unit_missing_from=missing_from,
         source_paused=_paused_title(s),
+        pending_review=_pending_review(s, act.id, text),
     )
+
+
+def pending_text(s: Session, act_id: int, current: LegalTextVersion | None) -> LegalTextVersion | None:
+    """Tekst z ELI czekający na kontrolę człowieka, nowszy niż pokazywany (np. t.j. tylko w PDF)."""
+    q = select(LegalTextVersion).where(
+        LegalTextVersion.act_id == act_id, LegalTextVersion.review_state == TextReview.DO_KONTROLI
+    )
+    if current is not None:
+        q = q.where(LegalTextVersion.recorded_at >= current.recorded_at, LegalTextVersion.id > current.id)
+    return s.scalar(q.order_by(LegalTextVersion.id.desc()))
+
+
+def _pending_review(s: Session, act_id: int, current: LegalTextVersion | None) -> str | None:
+    pending = pending_text(s, act_id, current)
+    return pending.journal_display if pending else None
 
 
 def for_unit(s: Session, unit: LegalUnit, ut: UnitText | None = None) -> Freshness:

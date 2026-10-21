@@ -3,10 +3,15 @@
 Treści redakcyjne przechodzą przez ten sam obieg co w panelu redakcji (z kontami demonstracyjnymi),
 więc historia przejść jest kompletna, a zasada „autor nie zatwierdza własnej treści” obowiązuje także tu.
 Istniejących wersji redakcyjnych seed nie nadpisuje — zmiany treści robi się w panelu, nie w YAML-u.
+
+Tekstu prawa tu nie ma i być nie może (arkusz, działania 2.2–2.3): wstawia go synchronizacja z ELI.
+Kolejność uruchomienia: ``migrate`` → ``seed --manifest-only`` → ``sync`` → ``seed``. Treści przypięte
+do jednostki, której jeszcze nie ma w tekście z ELI, czekają (szkic) — kolejny ``seed`` je dokończy.
 """
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -29,20 +34,19 @@ from app.models import (
     Guide,
     GuideVersion,
     LegalAct,
-    LegalTextVersion,
     LegalUnit,
-    LegalUnitVersion,
     LegalValidityInterval,
     SearchSynonym,
     SourceVerification,
-    TextReview,
 )
 from app.modules.editorial.workflow import transition
 from app.modules.freshness.service import unit_text
-from app.modules.parser.units import content_hash
-from app.modules.registry.units import unit_label, unit_slug
+
+log = logging.getLogger("przepisy")
 
 SEED_DIR = Path(__file__).resolve().parents[3] / "seed"
+# Klucze, pod którymi w danych startowych mógłby pojawić się tekst prawa — loader je odrzuca.
+LAW_TEXT_KEYS = frozenset({"text_versions", "content", "paragraphs", "law_text"})
 ACTOR = "seed"
 DEMO_AUTHOR = Editor("demo-redaktor", frozenset({"redaktor"}), "")
 DEMO_REVIEWER = Editor("demo-recenzent", frozenset({"recenzent"}), "")
@@ -122,64 +126,23 @@ def _publish(s: Session, version: Any) -> None:
     transition(s, version, S.OPUBLIKOWANY, DEMO_REVIEWER)
 
 
-def _text_versions(s: Session, items: list[dict[str, Any]]) -> None:
+def _find_unit(s: Session, act: LegalAct, key: str) -> LegalUnit | None:
+    return s.scalar(select(LegalUnit).where(LegalUnit.act_id == act.id, LegalUnit.unit_key == key))
+
+
+def _units(s: Session, items: list[dict[str, Any]]) -> None:
+    """Metadane redakcyjne jednostek z ELI: tytuł karty, wyróżnienie, rysunek. Tekst zostaje z ELI."""
     for item in items:
         act = _act(s, item["act"])
-        tv = s.scalar(
-            select(LegalTextVersion).where(
-                LegalTextVersion.act_id == act.id,
-                LegalTextVersion.origin == "redakcja",
-                LegalTextVersion.journal_display == item["journal_display"],
-                LegalTextVersion.text_type == item["text_type"],
+        unit = _find_unit(s, act, item["key"])
+        if unit is None:
+            log.warning(
+                "Seed: %s %s — jednostki jeszcze nie ma w tekście z ELI, pomijam", act.slug, item["key"]
             )
-        )
-        if tv is None:
-            tv = LegalTextVersion(
-                act_id=act.id,
-                text_type=item["text_type"],
-                source_eli=item.get("source_eli"),
-                journal_display=item["journal_display"],
-                legal_status_date=item.get("legal_status_date"),
-                incorporated=item.get("incorporated") or [],
-                origin="redakcja",
-                review_state=TextReview.ZAAKCEPTOWANY,
-                reviewed_by=ACTOR,
-                note=" ".join(str(item.get("note") or "").split()) or None,
-            )
-            s.add(tv)
-            s.flush()
-            record(s, actor=ACTOR, entity="legal_text_version", entity_id=tv.id, action="tekst_redakcji")
-        for u in item["units"]:
-            unit = s.scalar(
-                select(LegalUnit).where(LegalUnit.act_id == act.id, LegalUnit.unit_key == u["key"])
-            )
-            if unit is None:
-                unit = LegalUnit(
-                    act_id=act.id,
-                    unit_key=u["key"],
-                    label=unit_label(u["key"]),
-                    slug=unit_slug(act.slug, u["key"]),
-                )
-                s.add(unit)
-            unit.title = u.get("title") or unit.title
-            unit.featured = bool(u.get("featured", unit.featured))
-            unit.illustration = u.get("illustration") or unit.illustration
-            s.flush()
-            content = [{"unit": p["unit"], "text": " ".join(str(p["text"]).split())} for p in u["content"]]
-            exists = s.scalar(
-                select(LegalUnitVersion).where(
-                    LegalUnitVersion.unit_id == unit.id, LegalUnitVersion.text_version_id == tv.id
-                )
-            )
-            if exists is None:
-                s.add(
-                    LegalUnitVersion(
-                        unit_id=unit.id,
-                        text_version_id=tv.id,
-                        content=content,
-                        content_hash=content_hash(content),
-                    )
-                )
+            continue
+        unit.title = item.get("title") or unit.title
+        unit.featured = bool(item.get("featured", unit.featured))
+        unit.illustration = item.get("illustration") or unit.illustration
     s.flush()
 
 
@@ -241,28 +204,36 @@ def _verifications(s: Session, items: list[dict[str, Any]]) -> None:
 
 
 def _explanations(s: Session, items: list[dict[str, Any]]) -> None:
+    """Objaśnienie publikujemy tylko razem z brzmieniem z ELI, na którym je oparto."""
     for item in items:
-        unit = _unit(s, _act(s, item["act"]), item["unit"])
+        act = _act(s, item["act"])
+        unit = _find_unit(s, act, item["unit"])
+        if unit is None:
+            log.warning("Seed: objaśnienie %s %s czeka na tekst z ELI", act.slug, item["unit"])
+            continue
         explanation = s.scalar(select(Explanation).where(Explanation.unit_id == unit.id))
         if explanation is None:
             explanation = Explanation(unit_id=unit.id)
             s.add(explanation)
             s.flush()
-        if explanation.versions:
-            continue
         current = unit_text(s, unit).unit_version
-        version = ExplanationVersion(
-            explanation_id=explanation.id,
-            version_no=1,
-            title=item.get("title"),
-            body=item["body"].strip(),
-            author=DEMO_AUTHOR.name,
-            is_demo=True,
-            based_on_unit_version_id=current.id if current else None,
-        )
-        s.add(version)
-        s.flush()
-        _publish(s, version)
+        if not explanation.versions:
+            version = ExplanationVersion(
+                explanation_id=explanation.id,
+                version_no=1,
+                title=item.get("title"),
+                body=item["body"].strip(),
+                author=DEMO_AUTHOR.name,
+                is_demo=True,
+                based_on_unit_version_id=current.id if current else None,
+            )
+            s.add(version)
+            s.flush()
+        else:
+            version = max(explanation.versions, key=lambda v: v.version_no)
+        if version.state == S.SZKIC and current is not None:
+            version.based_on_unit_version_id = current.id
+            _publish(s, version)
 
 
 def _glossary(s: Session, items: list[dict[str, Any]]) -> None:
@@ -387,9 +358,25 @@ def _synonyms(s: Session, items: list[dict[str, Any]]) -> None:
             syn.expansions, syn.note = item["expansions"], item.get("note")
 
 
+def check_no_law_text(data: Any, where: str = "content.yaml") -> None:
+    """Dane startowe nie mogą zawierać tekstu prawa (arkusz, działanie 2.2) — tylko odesłania do jednostek."""
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if key in LAW_TEXT_KEYS:
+                raise ValueError(
+                    f"{where}: klucz {key!r} — tekst prawa pochodzi wyłącznie z synchronizacji z ELI, "
+                    "nie z danych startowych"
+                )
+            check_no_law_text(value, f"{where}.{key}")
+    elif isinstance(data, list):
+        for i, value in enumerate(data):
+            check_no_law_text(value, f"{where}[{i}]")
+
+
 def load_content(s: Session, path: Path = SEED_DIR / "content.yaml") -> None:
     data = _yaml(path)
-    _text_versions(s, data.get("text_versions") or [])
+    check_no_law_text(data, path.name)
+    _units(s, data.get("units") or [])
     _validity(s, data.get("validity") or [])
     _verifications(s, data.get("verifications") or [])
     _explanations(s, data.get("explanations") or [])

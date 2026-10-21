@@ -99,8 +99,9 @@ def test_relative_file_maps_eli_paths_and_rejects_others() -> None:
 
 
 def test_recorded_responses_replay_to_identical_sync(  # type: ignore[no-untyped-def]
-    seeded: Session, fake_eli: FakeEli, tmp_path: Path
+    manifest: Session, fake_eli: FakeEli, tmp_path: Path
 ) -> None:
+    seeded = manifest
     only_act(seeded, "prawo-budowlane")
     out = tmp_path / "recorded"
     recorder = RecordingTransport(httpx.MockTransport(fake_eli.handler), out, "/eli")

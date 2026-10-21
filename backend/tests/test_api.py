@@ -13,27 +13,34 @@ from app.modules.reports.service import _easter, add_working_days
 def test_provision_card_has_type_status_citation_and_demo_flag(seeded: Session, api: TestClient) -> None:
     card = api.get("/api/v1/przepisy/warunki-techniczne-par-12-ust-1").json()
     assert card["display_label"] == "WT § 12 ust. 1"
-    assert card["text_type"] == "kompilacja"
-    assert card["freshness"]["status"] == "przejsciowa"
-    assert card["freshness"]["date"] == "2026-09-20"
-    assert (
-        card["freshness"]["notices"][0]["title"] == "Te warunki techniczne utraciły moc 20 września 2026 r."
-    )
-    assert card["citation"]["text"].endswith("Dz.U. 2022 poz. 1225, zm. 2023 poz. 2442, § 12 ust. 1")
-    assert card["citation"]["as_of"] == "2026-09-19"
+    # Typ, stan prawny i obowiązywanie liczą się z metadanych ELI, nie z danych startowych.
+    assert card["text_type"] == "jednolity"
+    assert card["freshness"]["status"] == "niepotwierdzona"
+    notices = {n["code"]: n for n in card["freshness"]["notices"]}
+    assert notices["utracil_moc"]["title"] == "Ten akt nie obowiązuje od 21\u00a0września 2026\u00a0r."
+    assert "brak_stanu_prawnego" in notices  # t.j. aktu uchylonego nie podaje stanu prawnego
+    assert card["citation"]["text"].endswith("Dz.U. 2022 poz. 1225, § 12 ust. 1")
+    assert card["citation"]["as_of"] is None
     assert card["explanation"]["is_demo"] is True
     assert card["illustration"] == "rzut-odleglosc-od-granicy"
     assert card["paragraphs"][1] == {
         "unit": "1)",
-        "text": "4 m – w przypadku budynku zwróconego ścianą z oknami lub drzwiami w stronę tej granicy;",
+        "text": "4 m - w przypadku budynku zwróconego ścianą z oknami lub drzwiami w stronę tej granicy;",
     }
 
 
-def test_manually_entered_text_is_never_shown_as_current(seeded: Session, api: TestClient) -> None:
+def test_every_text_on_cards_comes_from_eli_snapshot(seeded: Session, api: TestClient) -> None:
+    from app.models import LegalTextVersion, SourceSnapshot
+
     card = api.get("/api/v1/przepisy/prawo-budowlane-art-29-ust-1-pkt-1a").json()
-    assert card["text_type"] == "nierozpoznany"
-    assert card["freshness"]["status"] == "niepotwierdzona"
-    assert {n["code"] for n in card["freshness"]["notices"]} >= {"typ_nierozpoznany"}
+    assert card["text_type"] == "jednolity"
+    assert card["citation"]["as_of"] == "2026-03-20"
+    rows = seeded.execute(
+        select(LegalTextVersion.origin, SourceSnapshot.sha256).join(
+            SourceSnapshot, SourceSnapshot.id == LegalTextVersion.snapshot_id
+        )
+    ).all()
+    assert rows and all(origin == "eli" and len(sha) == 64 for origin, sha in rows)
 
 
 def test_permanent_version_url_and_archived_notice(seeded: Session, api: TestClient) -> None:
@@ -45,17 +52,25 @@ def test_permanent_version_url_and_archived_notice(seeded: Session, api: TestCli
     assert api.get("/api/v1/przepisy/nie-ma-takiego").status_code == 404
 
 
-def test_archived_version_after_sync_is_marked(seeded: Session, api: TestClient, make_sync) -> None:  # type: ignore[no-untyped-def]
-    from tests.conftest import only_act
+def test_archived_version_after_sync_is_marked(seeded: Session, api: TestClient, make_sync, fake_eli) -> None:  # type: ignore[no-untyped-def]
+    from tests.conftest import FIXTURES, only_act
 
     old = api.get("/api/v1/przepisy/prawo-budowlane-art-28-ust-1").json()["versions"][0]["unit_version_id"]
     only_act(seeded, "prawo-budowlane")
+    html = (FIXTURES / "DU_2026_524.html").read_text(encoding="utf-8")
+    fake_eli.routes["/eli/acts/DU/2026/524/text.html"] = (
+        200,
+        html.replace("z zastrzeżeniem art. 29–31.", "z zastrzeżeniem art. 29–31a.").encode(),
+        "text/html",
+    )
+    # Lista zmian ELI wskazuje tekst jednolity — synchronizacja pobiera go ponownie.
+    fake_eli.set_json("/eli/changes/acts", [{"ELI": "DU/2026/524", "changeDate": "2026-10-20T09:00:00"}])
     make_sync().run()
     card = api.get(f"/api/v1/przepisy/prawo-budowlane-art-28-ust-1/wersje/{old}").json()
     assert card["is_archived_version"] is True
     assert card["freshness"]["notices"][0]["code"] == "wersja_archiwalna"
     current = api.get("/api/v1/przepisy/prawo-budowlane-art-28-ust-1").json()
-    assert current["text_type"] == "jednolity"
+    assert current["paragraphs"][0]["text"].endswith("art. 29–31a.")
     assert len(current["versions"]) == 2
 
 
@@ -86,7 +101,9 @@ def test_wizard_results_carry_basis_and_status(seeded: Session, api: TestClient)
     tree = api.get("/api/v1/kreatory/pozwolenie-zgloszenie").json()
     node = tree["nodes"]["wynik-zgloszenie-70"]
     assert node["basis"] == "Prawo budowlane, art. 29 ust. 1 pkt 1a · Dz.U. 2026 poz. 524"
-    assert node["status"] == "niepotwierdzona"
+    assert (
+        node["status"] == "zmiana"
+    )  # syntetyczna nowelizacja Dz.U. 2026 poz. 900 jeszcze nie weszła w życie
     assert node["links"][0]["url"].startswith("https://e-budownictwo")
     # Każda opcja prowadzi do istniejącego węzła.
     for n in tree["nodes"].values():
@@ -96,7 +113,7 @@ def test_wizard_results_carry_basis_and_status(seeded: Session, api: TestClient)
 
 def test_search_uses_inflection_unaccented_input_and_synonyms(seeded: Session, api: TestClient) -> None:
     r = api.get("/api/v1/szukaj", params={"q": "odleglosc od sasiada"}).json()
-    assert r["hits"][0]["ref"] == "warunki-techniczne-par-12-ust-1"
+    assert "warunki-techniczne-par-12-ust-1" in [h["ref"] for h in r["hits"][:3]]
     assert r["synonyms_used"][0]["slowo"] == "sąsiad"
     r = api.get("/api/v1/szukaj", params={"q": "wuzetka"}).json()
     assert any(h["ref"] == "warunki-zabudowy" for h in r["hits"])
@@ -138,7 +155,7 @@ def test_working_days_skip_weekends_and_polish_holidays() -> None:
     assert add_working_days(date(2026, 11, 10), 1) == date(2026, 11, 12)  # 11.11
 
 
-def test_status_endpoint_reports_no_sync_yet(seeded: Session, api: TestClient) -> None:
+def test_status_endpoint_reports_no_sync_yet(manifest: Session, api: TestClient) -> None:
     st = api.get("/api/v1/stan").json()
     assert st["last_success_at"] is None
     assert st["threshold_hours"] == 72

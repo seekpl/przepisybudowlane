@@ -72,7 +72,8 @@ export function ProvisionCard({ p, mode, headingLevel = 1 }: { p: Provision; mod
         </Heading>
         <div className="pb-badges">
           <StatusBadge status={p.freshness.status} date={p.freshness.date} effectiveDate={p.freshness.effective_date} />
-          <TextTypeBadge type={p.text_type} />
+          {/* Bez brzmienia nie ma czego opisywać typem — powód podaje komunikat (np. tekst czeka na kontrolę). */}
+          {p.paragraphs.length > 0 ? <TextTypeBadge type={p.text_type} /> : null}
         </div>
         {p.is_archived_version ? (
           <p className="ui-small">
@@ -84,15 +85,23 @@ export function ProvisionCard({ p, mode, headingLevel = 1 }: { p: Provision; mod
       {mode === "simple" ? (
         <>
           {explanation}
-          <h2 className="pb-law-heading ui-label">Oficjalne brzmienie</h2>
-          {law}
+          {p.paragraphs.length > 0 ? (
+            <>
+              <h2 className="pb-law-heading ui-label">Oficjalne brzmienie</h2>
+              {law}
+            </>
+          ) : null}
           {cite}
         </>
       ) : (
         <>
           {cite}
-          <h2 className="pb-sr">Oficjalne brzmienie</h2>
-          {law}
+          {p.paragraphs.length > 0 ? (
+            <>
+              <h2 className="pb-sr">Oficjalne brzmienie</h2>
+              {law}
+            </>
+          ) : null}
           {explanation}
         </>
       )}

@@ -33,8 +33,10 @@ test("strona startowa prowadzi do wyszukiwarki z jawnymi synonimami", async ({ p
 test("komunikat o aktualności stoi przed tekstem przepisu w obu trybach", async ({ page }) => {
   await page.goto(CARD);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Odległość budynku od granicy działki");
-  await expect(page.locator(".pb-card .pb-status-przejsciowa")).toContainText("Utracił moc 20.09.2026");
-  await expect(page.locator(".pb-card .pb-type-kompilacja")).toContainText("Własna kompilacja");
+  // Typ i obowiązywanie z metadanych ELI (nagranie z 21.10.2026): t.j. aktu uznanego za uchylony.
+  await expect(page.locator(".pb-card .pb-status-niepotwierdzona")).toContainText("Nie potwierdzono aktualności");
+  await expect(page.locator(".pb-card .pb-type-jednolity")).toContainText("Tekst jednolity");
+  await expect(page.locator(".pb-card .pb-notice").first()).toContainText("Ten akt nie obowiązuje od 21");
   // Tryb prosty: komunikat → objaśnienie → oficjalne brzmienie → metryka.
   const simple = await Promise.all([".pb-card .pb-notice", ".pb-card .pb-explain", ".pb-card .pb-law", ".pb-card .pb-cite"].map((s) => docIndex(page, s)));
   expect(simple).toEqual([...simple].sort((a, b) => a - b));
@@ -50,11 +52,14 @@ test("komunikat o aktualności stoi przed tekstem przepisu w obu trybach", async
   await setMode(page, "Prosty");
 });
 
-test("tekst wpisany ręcznie ma typ nierozpoznany i nie jest nazwany aktualnym", async ({ page }) => {
+test("tekst z ELI tylko w PDF czeka na kontrolę człowieka i nie jest pokazywany", async ({ page }) => {
   await page.goto("/przepis/prawo-budowlane-art-29-ust-1-pkt-1a");
-  await expect(page.locator(".pb-card .pb-type-nierozpoznany")).toBeVisible();
   await expect(page.locator(".pb-card .pb-status-niepotwierdzona")).toBeVisible();
-  await expect(page.getByText("Nie ustaliliśmy, czym jest ten tekst")).toBeVisible();
+  await expect(page.getByText("Tekst urzędowy czeka na sprawdzenie")).toBeVisible();
+  // Brak brzmienia: ani tekstu, ani odznaki typu — tylko metryka z linkiem do oficjalnego tekstu.
+  await expect(page.locator(".pb-card .pb-law")).toHaveCount(0);
+  await expect(page.locator(".pb-card [class*='pb-type-']")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Otwórz oficjalny tekst" })).toHaveAttribute("href", "https://eli.gov.pl/eli/DU/2026/524");
   await expect(page.locator(".pb-status-potwierdzona")).toHaveCount(0);
 });
 
@@ -65,7 +70,7 @@ test("kopiuj cytat kopiuje akt, publikator i jednostkę", async ({ page, context
   await page.getByRole("button", { name: "Kopiuj cytat" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Cytat skopiowany do schowka" })).toBeAttached();
   const text = await page.evaluate(() => navigator.clipboard.readText());
-  expect(text).toContain("Dz.U. 2022 poz. 1225, zm. 2023 poz. 2442, § 12 ust. 1");
+  expect(text).toContain("Dz.U. 2022 poz. 1225, § 12 ust. 1");
 });
 
 test("kreator: bez odpowiedzi pokazuje komunikat, potem wynik z podstawą, odpowiedzi przetrwają odświeżenie", async ({ page }) => {
