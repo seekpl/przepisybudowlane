@@ -1,0 +1,22 @@
+{
+ "status": "sukces",
+ "bledy": [],
+ "naruszenia_kontraktu": [
+  {
+   "eli": "DU/2026/524",
+   "kod": "nieznany_klucz_powiazania",
+   "opis": "DU/2026/524: nieznane klucze powiązań: Nowelizacje po tekście jednolitym"
+  },
+  {
+   "eli": "DU/2022/1225",
+   "kod": "brak_stanu_prawnego",
+   "opis": "DU/2022/1225: tekst jednolity bez pola legalStatusDate"
+  },
+  {
+   "eli": "DU/2026/538",
+   "kod": "nieznany_klucz_powiazania",
+   "opis": "DU/2026/538: nieznane klucze powiązań: Nowelizacje po tekście jednolitym"
+  }
+ ],
+ "pliki": 29
+}

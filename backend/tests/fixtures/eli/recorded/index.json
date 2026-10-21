@@ -1,0 +1,205 @@
+{
+ "acts/DU/1960/168.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/1960/168",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "5783abc683b9cecc3e0b8e88c0ec5cafa02758ba1c89b214b0a6b280e3382ca3",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/1994/414.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/1994/414",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "795cb6ec521b2495d408f37f906d8dd3723b16ff6bc675bf82eaf6c0243fcefd",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2002/690.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2002/690",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "bf5b4d2e3a33c5304ecb1d5b49f9326279b14e31551f0044109f239ddb32d771",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2003/717.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2003/717",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "c12a3cc1b2ab5260aba2e61dbb3444b3f875a925d58731b588f0fcad2899d8d9",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2022/1225.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2022/1225",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "8ddbf9bcab2514e88dd94bbc0278d6b31417806d0d4a6ec831638a59aba0409f",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2022/1225/text.html": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2022/1225/text.html",
+  "status": 200,
+  "content_type": "text/html;charset=utf-8",
+  "sha256": "11502f1df82f5461a262d32ec52a3cec7b3d417903535cb45b24fba6cf96378a",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2023/1688.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2023/1688",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "44b0f02e55769cf71e3eefb7bc45715d6503a0e6d574c0591f26ec413090b0bc",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/1080.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/1080",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "cbc4a90568fb60fa2398314e0328f9e90efa043d88aab52a0b8131f468279143",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/1535.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/1535",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "0cde940258fb54b63f9ddd6a6c1be2653622cb100d1bacdc14eebff0a1f92a99",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/1668.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/1668",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "5ae86dec7daf5bce45b73595a2945b4be4aa99372f527aaa12ace73b61f5de23",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/1673.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/1673",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "1c4acb60d2d84857c8eea538feaafb4464459f2043cae480936b33bc9af19e0d",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/1691.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/1691",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "56cf9f18ae1f61c3d769eadb53525eb4b796e52f0394fba5c194ccc4d07cd1dd",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/1691/text.pdf": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/1691/text.pdf",
+  "status": 200,
+  "content_type": "application/pdf",
+  "sha256": "152f0830dee854451929d1482ecb83e9d053bc7b339973f78cfe0ea98fca348b",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/1847.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/1847",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "94a82350a8621e1b3b72865f8a712a6e1556b124cc1c4d244ee3aef32cc6a8f1",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/527.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/527",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "2ec25b71e91ecce22024ece4fa5fa255eebf99c868632b8df41caaf42078e213",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/680.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/680",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "1ab4d6529f2809b9d8b44c38fc7fd2087a64b6c3a2c76912381dac472e96d1cb",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2025/769.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/769",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "29a8c6f50408f2aea9a6a15a0ad3e43dabab9991dad49d6bbae7d4928bf65c9a",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/1161.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/1161",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "2879ade00217c7c9e0bfac7167e216ec15727967015c3a8f675044d8e7070c34",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/1347.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/1347",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "5529869d9a814505cf0825bea7a93e694535203385038091ecfbf29dac1c6d84",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/24.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/24",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "c75bad409378d43cd75af1cd3e5f558a9adc86986708ac8eb8a491ae1e7bbf8d",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/524.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/524",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "910438d0f491e8ffee07e06a43814ea8948fa0fd6d22350b45b2910683aaf943",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/524/text.pdf": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/524/text.pdf",
+  "status": 200,
+  "content_type": "application/pdf",
+  "sha256": "4a33b840883a10aa6f68d3cd85ac673a727b6b822ef092b1b97efbcdfda57826",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/538.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/538",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "7131c544bcb3bd7b509f964a9287ba86c4d88a088d7b0f9efcac6d9fe6e72fe3",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/538/text.pdf": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/538/text.pdf",
+  "status": 200,
+  "content_type": "application/pdf",
+  "sha256": "f4918f6014117ce8845cedd6cad2d4b3bf55d57ff9a1dde689a04d72c0909139",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/605.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/605",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "91505f2b9376e3ac0942bd22757ab5ca97e8fa72bc58f21dc6e76032197b299a",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/646.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/646",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "d9597f943969b13711ca59f1c0022169449c83ab50a5f9b6c1a283c26cf14756",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/781.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/781",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "df341ec6716e96d1c05e483d45092cad6fe98427c175f2867de94f3ba171612b",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/864.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/864",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "9f23d775b9bf4e1c55d79c775b7e33260017d35a1a533ad67c4b104087cd6545",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2026/912.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2026/912",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "01860f0bd18f2fd3eb579d1abb4de62156fd659f56336663efda57a77405beb4",
+  "recorded_at": "2026-10-21T10:46:51+00:00"
+ }
+}
