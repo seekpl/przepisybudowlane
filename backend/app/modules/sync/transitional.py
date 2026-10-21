@@ -24,18 +24,34 @@ def _norm(text: str) -> str:
     return _WS.sub(" ", text.replace("\u00a0", " ")).strip().lower()
 
 
+_BASIS = re.compile(r"art\.\s*(?P<art>\d+[a-z]*)(?:\s+ust\.\s*(?P<ust>\d+[a-z]*))?")
+
+
+def _basis_pattern(basis: str) -> re.Pattern[str] | None:
+    """„art. 7 ust. 2 pkt 1” → wzorzec, który łapie też „art. 7 ust. 2 i 3” i „art. 7 ust. 1, 2 i 3”."""
+    m = _BASIS.search(basis)
+    if m is None:
+        return None
+    art = re.escape(m.group("art"))
+    if m.group("ust") is None:
+        return re.compile(rf"\bart\.\s*{art}\b")
+    ust = re.escape(m.group("ust"))
+    others = r"(?:\d+[a-z]*\s*(?:,|i|lub|oraz)\s*)*"
+    return re.compile(rf"\bart\.\s*{art}\s+ust\.\s*{others}{ust}\b")
+
+
 def find_transitional(
     units: dict[str, ParsedUnit], *, basis: list[str], repealed_title: str | None = None
 ) -> list[dict[str, str]]:
     """Kandydaci na przepisy przejściowe: najgłębsze jednostki, które spełniają oba warunki."""
-    needles = [_norm(b) for b in basis if b.strip()]
+    patterns = [p for p in (_basis_pattern(_norm(b)) for b in basis) if p is not None]
     title = _norm(repealed_title or "")
     # Fragment tytułu bez „Rozporządzenie Ministra … z dnia …” — to, co akt uchylający zwykle przytacza.
     title_core = title.split(" w sprawie ", 1)[1].rstrip(".") if " w sprawie " in title else ""
     matched: dict[str, ParsedUnit] = {}
     for key, unit in units.items():
         text = _norm(" ".join(p["text"] for p in unit.content))
-        refers = any(n in text for n in needles) or (bool(title_core) and title_core in text)
+        refers = any(p.search(text) for p in patterns) or (bool(title_core) and title_core in text)
         if refers and _KEEPS_IN_FORCE.search(text):
             matched[key] = unit
     deepest = [k for k in matched if not any(other.startswith(k + ".") for other in matched)]

@@ -67,6 +67,15 @@ class ActMetadata(BaseModel):
         return found
 
 
+def eli_order(eli: str) -> tuple[int, int]:
+    """Klucz sortowania identyfikatorów ELI: (rok, pozycja) liczbowo — „DU/2024/1411” po „DU/2024/726”."""
+    parts = eli.split("/")
+    try:
+        return int(parts[1]), int(parts[2])
+    except (IndexError, ValueError):
+        return (0, 0)
+
+
 class ChangeEntry(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 

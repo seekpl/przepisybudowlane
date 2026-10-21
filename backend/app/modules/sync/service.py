@@ -56,7 +56,7 @@ from app.modules.editorial.flags import flag_content
 from app.modules.editorial.workflow import system_suspend
 from app.modules.eli.client import EliClient, EliError, act_path
 from app.modules.eli.contract import ContractViolationError, check_metadata
-from app.modules.eli.schemas import ActMetadata, ChangeEntry
+from app.modules.eli.schemas import ActMetadata, ChangeEntry, eli_order
 from app.modules.freshness.engine import Amendment, is_later_than
 from app.modules.ops.alarms import open_alarm
 from app.modules.parser.pdf import parse_pdf
@@ -367,7 +367,7 @@ class SyncService:
             for ref in meta.refs("repealed_by"):
                 self._transitional(s, act, meta, ref.id, ref.on or meta.repeal_date)
 
-        tj_refs = sorted(meta.refs("consolidated_texts"), key=lambda r: (r.on or date.min, r.id))
+        tj_refs = sorted(meta.refs("consolidated_texts"), key=lambda r: (r.on or date.min, eli_order(r.id)))
         if tj_refs:
             source_eli = tj_refs[-1].id
             src_fetch, src_meta = self._metadata(source_eli, kind="metadata_tj", act_id=act.id)
@@ -441,6 +441,12 @@ class SyncService:
         details: dict[str, Any] = {"akt_uchylajacy": repealing, "od": since.isoformat() if since else None}
         try:
             fetched, rmeta = self._metadata(repealing, kind="metadata_uchylajacy", act_id=act.id)
+            # Przepisy przejściowe bywają później zmieniane (np. wydłużenie terminu) — czytamy je
+            # z najnowszego tekstu jednolitego aktu uchylającego, jeśli taki jest.
+            tj = sorted(rmeta.refs("consolidated_texts"), key=lambda r: (r.on or date.min, eli_order(r.id)))
+            if tj:
+                tj_fetched, rmeta = self._metadata(tj[-1].id, kind="metadata_uchylajacy", act_id=act.id)
+                fetched = tj_fetched if tj_fetched.is_new else fetched
             if task is not None and not fetched.is_new:
                 return
             base = act_path(rmeta.eli)

@@ -80,3 +80,25 @@ def test_reviewer_records_transitional_application_and_card_shows_it(
     assert "stosowany_przejsciowo" in codes and "utracil_moc" not in codes
     card = api.get("/api/v1/przepisy/warunki-techniczne-par-12-ust-1").json()
     assert any(n["title"] == body["title"] for n in card["freshness"]["notices"])
+
+
+def test_real_repealing_act_points_to_its_transitional_provision() -> None:
+    """Nagranie z 21.10.2026: WT uchylone na podstawie Dz.U. 2019 poz. 1696 — automat wskazuje art. 66."""
+    import json
+    from pathlib import Path
+
+    import pytest
+
+    from app.modules.parser.units import parse_units
+
+    rec = Path(__file__).parent / "fixtures" / "eli" / "recorded" / "acts" / "DU"
+    html = rec / "2019" / "1696" / "text.html"
+    if not html.exists():
+        pytest.skip("brak nagrania aktu uchylającego")
+    wt = json.loads((rec / "2002" / "690.json").read_text(encoding="utf-8"))
+    basis = [r["art"] for r in wt["references"]["Podstawa prawna z art."] if r.get("art")]
+    found = find_transitional(
+        parse_units(html.read_text(encoding="utf-8")).units, basis=basis, repealed_title=wt["title"]
+    )
+    art66 = next(c for c in found if c["klucz"] == "art_66")
+    assert "art. 7 ust. 2 i 3" in art66["tekst"] and "zachowują moc" in art66["tekst"]
