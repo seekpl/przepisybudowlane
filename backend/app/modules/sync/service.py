@@ -31,6 +31,7 @@ from app.models import (
     DecisionTreeVersion,
     DetectedAmendment,
     EditorialState,
+    EditorialTask,
     Explanation,
     ExplanationVersion,
     LegalAct,
@@ -61,6 +62,7 @@ from app.modules.ops.alarms import open_alarm
 from app.modules.parser.pdf import parse_pdf
 from app.modules.parser.units import ParseResult, parse_units
 from app.modules.registry.units import unit_slug
+from app.modules.sync.transitional import find_transitional
 
 ACTOR = "system:synchronizacja"
 SOURCE = "eli"
@@ -361,6 +363,9 @@ class SyncService:
     def _process_act(self, s: Session, act: LegalAct, changed: set[str] | None, outcome: ActOutcome) -> None:
         meta_fetch, meta = self._metadata(act.eli, kind="metadata", act_id=act.id)
         self._record_validity(s, act, meta)
+        if meta.in_force == "NOT_IN_FORCE":
+            for ref in meta.refs("repealed_by"):
+                self._transitional(s, act, meta, ref.id, ref.on or meta.repeal_date)
 
         tj_refs = sorted(meta.refs("consolidated_texts"), key=lambda r: (r.on or date.min, r.id))
         if tj_refs:
@@ -420,6 +425,55 @@ class SyncService:
                 basis=f"Metadane ELI {act.eli} (status: {meta.status})",
                 supersedes_id=last.id if last else None,
             )
+        )
+
+    def _transitional(
+        self, s: Session, act: LegalAct, meta: ActMetadata, repealing: str, since: date | None
+    ) -> None:
+        """Akt uchylony: zadanie dla człowieka z kandydatami na przepisy przejściowe aktu uchylającego (2.4).
+
+        Tekst aktu uchylającego pobieramy tylko wtedy, gdy zmieniły się jego metadane albo nie ma jeszcze
+        zadania. Awaria pobrania nie psuje synchronizacji aktu — zadanie mówi wtedy, że kandydatów brak.
+        """
+        key = f"przejsciowe:{act.id}:{repealing}"
+        task = s.scalar(select(EditorialTask).where(EditorialTask.dedupe_key == key))
+        basis = [r.art for r in meta.references.get("Podstawa prawna z art.", []) if r.art]
+        details: dict[str, Any] = {"akt_uchylajacy": repealing, "od": since.isoformat() if since else None}
+        try:
+            fetched, rmeta = self._metadata(repealing, kind="metadata_uchylajacy", act_id=act.id)
+            if task is not None and not fetched.is_new:
+                return
+            base = act_path(rmeta.eli)
+            if rmeta.text_html:
+                body = self._fetch(f"{base}/text.html", kind="text_uchylajacy", act_id=act.id).content
+                parsed = parse_units(body.decode("utf-8", errors="replace"))
+            elif rmeta.text_pdf:
+                parsed = parse_pdf(
+                    self._fetch(f"{base}/text.pdf", kind="text_uchylajacy", act_id=act.id).content
+                )
+            else:
+                raise SyncActError(f"ELI nie udostępnia tekstu {rmeta.eli}")
+            details |= {
+                "tytul": rmeta.title,
+                "publikator": rmeta.journal_display,
+                "podstawa": basis,
+                "kandydaci": find_transitional(parsed.units, basis=basis, repealed_title=meta.title),
+            }
+        except (SyncActError, EliError) as exc:
+            if task is not None:
+                return
+            details |= {"blad": str(exc), "kandydaci": []}
+        if task is not None:
+            task.details = details  # nowe brzmienie aktu uchylającego: kandydaci od nowa, zadanie to samo
+            return
+        when = f" od {since.strftime('%d.%m.%Y')}" if since else ""
+        tasks.ensure_task(
+            s,
+            kind=TaskKind.PRZEPISY_PRZEJSCIOWE,
+            act_id=act.id,
+            dedupe_key=key,
+            title=f"{act.short_title}: akt uchylony{when} — oceń, czy i do jakich spraw stosuje się go dalej",
+            details=details,
         )
 
     def _current_text(self, s: Session, act_id: int) -> LegalTextVersion | None:

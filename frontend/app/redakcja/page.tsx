@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { editorLogout } from "@/app/actions";
-import { CloseAlarmForm, CloseTaskForm, LoginForm, TextDecisionForm, TransitionForm } from "@/components/editorial/Forms";
+import { CloseAlarmForm, CloseTaskForm, LoginForm, TextDecisionForm, TransitionalForm, TransitionForm } from "@/components/editorial/Forms";
 import { Icon } from "@/components/ds/Icon";
 import { editorialFetch } from "@/lib/api";
 import { editorToken } from "@/lib/editor";
@@ -13,6 +13,11 @@ interface Me {
   name: string;
   roles: string[];
 }
+interface Candidate {
+  klucz: string;
+  jednostka: string;
+  tekst: string;
+}
 interface Task {
   id: number;
   kind: string;
@@ -20,6 +25,14 @@ interface Task {
   due_on: string | null;
   created_at: string;
   act: string | null;
+  act_slug: string | null;
+  details: {
+    akt_uchylajacy?: string;
+    publikator?: string;
+    od?: string | null;
+    kandydaci?: Candidate[];
+    blad?: string;
+  };
 }
 interface Content {
   entity: string;
@@ -173,7 +186,11 @@ export default async function Page() {
                     </td>
                     <td className="meta-small">{shortDate(t.due_on) ?? "—"}</td>
                     <td>
-                      <CloseTaskForm id={t.id} />
+                      {t.kind === "przepisy_przejsciowe" && t.act_slug ? (
+                        <TransitionalTask task={t} />
+                      ) : (
+                        <CloseTaskForm id={t.id} />
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -297,6 +314,41 @@ function ContentTable({ rows }: { rows: Content[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Akt uchylony: kandydaci na przepisy przejściowe z aktu uchylającego i decyzja recenzenta (arkusz, 2.4). */
+function TransitionalTask({ task }: { task: Task }) {
+  const d = task.details;
+  const candidates = d.kandydaci ?? [];
+  const source = d.publikator ?? d.akt_uchylajacy ?? "akt uchylający";
+  return (
+    <div className="pb-stack-2">
+      {d.blad ? <p className="ui-small">Nie udało się pobrać aktu uchylającego: {d.blad}</p> : null}
+      {candidates.length === 0 ? (
+        <p className="ui-small pb-muted">Automat nie znalazł w {source} przepisu o dalszym stosowaniu — sprawdź akt ręcznie.</p>
+      ) : (
+        <details>
+          <summary className="ui-small">
+            Kandydaci z {source} ({candidates.length})
+          </summary>
+          <ul className="pb-plain-list ui-small">
+            {candidates.map((c) => (
+              <li key={c.klucz}>
+                <strong>{c.jednostka}</strong> — {c.tekst}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+      <TransitionalForm
+        taskId={task.id}
+        actSlug={task.act_slug ?? ""}
+        since={d.od ?? null}
+        basis={candidates[0] ? `${candidates[0].jednostka} (${source})` : ""}
+      />
+      <CloseTaskForm id={task.id} />
     </div>
   );
 }

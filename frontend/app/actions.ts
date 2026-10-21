@@ -134,3 +134,28 @@ export async function editorCloseAlarm(_prev: EditorState, formData: FormData): 
   revalidatePath("/redakcja");
   return { ok: "Alarm zamknięty — następny przebieg synchronizacji ruszy normalnie." };
 }
+
+export async function editorTransitional(_prev: EditorState, formData: FormData): Promise<EditorState> {
+  const slug = String(formData.get("act_slug") ?? "");
+  const field = (name: string) => String(formData.get(name) ?? "").trim();
+  if (!field("valid_from")) return { error: "Podaj datę, od której akt stosuje się przejściowo." };
+  if (field("basis").length < 3) return { error: "Wskaż przepis przejściowy, na którym opierasz decyzję." };
+  if (field("description").length < 10) return { error: "Opisz w jednym–dwóch zdaniach, do jakich spraw akt stosuje się dalej." };
+  try {
+    await editorialFetch(await token(), `/akty/${encodeURIComponent(slug)}/stosowanie-przejsciowe`, {
+      method: "POST",
+      body: JSON.stringify({
+        valid_from: field("valid_from"),
+        valid_to: field("valid_to") || null,
+        basis: field("basis"),
+        title: field("title") || null,
+        description: field("description"),
+        task_id: Number(formData.get("task_id")) || null,
+      }),
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nie udało się zapisać decyzji." };
+  }
+  revalidatePath("/redakcja");
+  return { ok: "Zapisano — karty aktu pokażą stosowanie przejściowe z tą podstawą." };
+}

@@ -9,6 +9,7 @@ import {
   editorDecideText,
   editorLogin,
   editorTransition,
+  editorTransitional,
 } from "@/app/actions";
 import { Icon } from "@/components/ds/Icon";
 
@@ -151,6 +152,46 @@ export function CloseAlarmForm({ id }: { id: number }) {
       <button type="submit" className="pb-btn pb-btn-secondary pb-expert" disabled={pending}>
         <Icon name="check" />
         <span>Zamknij alarm i wznów synchronizację</span>
+      </button>
+      <Feedback state={res} />
+    </form>
+  );
+}
+
+export function TransitionalForm({ taskId, actSlug, since, basis }: { taskId: number; actSlug: string; since: string | null; basis: string }) {
+  const [res, action, pending] = useActionState<EditorState, FormData>(editorTransitional, {});
+  const id = (name: string) => `pp-${taskId}-${name}`;
+  return (
+    <form action={action} className="pb-stack-2">
+      <input type="hidden" name="task_id" value={taskId} />
+      <input type="hidden" name="act_slug" value={actSlug} />
+      <div className="pb-field">
+        <label className="ui-label" htmlFor={id("from")}>
+          Stosuje się przejściowo od
+        </label>
+        <input id={id("from")} name="valid_from" type="date" className="pb-input ui-small" defaultValue={since ?? ""} required />
+      </div>
+      <div className="pb-field">
+        <label className="ui-label" htmlFor={id("to")}>
+          Do (jeśli przepis podaje termin)
+        </label>
+        <input id={id("to")} name="valid_to" type="date" className="pb-input ui-small" />
+      </div>
+      <div className="pb-field">
+        <label className="ui-label" htmlFor={id("basis")}>
+          Podstawa — przepis przejściowy
+        </label>
+        <input id={id("basis")} name="basis" className="pb-input ui-small" defaultValue={basis} required />
+      </div>
+      <div className="pb-field">
+        <label className="ui-label" htmlFor={id("desc")}>
+          Do jakich spraw stosuje się akt dalej
+        </label>
+        <textarea id={id("desc")} name="description" className="pb-input ui-small" rows={3} required />
+      </div>
+      <button type="submit" className="pb-btn pb-btn-secondary pb-expert" disabled={pending}>
+        <Icon name="check" />
+        <span>Zapisz stosowanie przejściowe</span>
       </button>
       <Feedback state={res} />
     </form>

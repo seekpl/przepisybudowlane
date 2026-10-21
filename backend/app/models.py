@@ -72,6 +72,7 @@ class TaskKind(StrEnum):
     KONTROLA_PARSERA = "kontrola_parsera"
     AWARIA_SYNCHRONIZACJI = "awaria_synchronizacji"
     ZGLOSZENIE_BLEDU = "zgloszenie_bledu"
+    PRZEPISY_PRZEJSCIOWE = "przepisy_przejsciowe"
 
 
 class SyncStatus(StrEnum):

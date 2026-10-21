@@ -21,6 +21,7 @@ const TASKS: Record<string, string> = {
   kontrola_parsera: "Teksty do kontroli człowieka",
   awaria_synchronizacji: "Awarie synchronizacji",
   zgloszenie_bledu: "Zgłoszenia błędów",
+  przepisy_przejsciowe: "Akty uchylone — ocena przepisów przejściowych",
 };
 
 export default async function Page() {

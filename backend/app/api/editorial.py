@@ -25,8 +25,10 @@ from app.models import (
     LegalAct,
     LegalTextVersion,
     LegalUnit,
+    LegalValidityInterval,
     SourceAlarm,
     TextReview,
+    ValidityKind,
 )
 from app.modules.editorial.workflow import ENTITY_MODELS, WorkflowError, entity_name, transition
 from app.modules.freshness.service import current_text, unit_text
@@ -64,6 +66,7 @@ class TaskOut(BaseModel):
     due_on: date | None
     act: str | None
     unit: str | None
+    act_slug: str | None = None
 
 
 class CloseIn(BaseModel):
@@ -147,6 +150,7 @@ def tasks(
                 due_on=t.due_on,
                 act=act.short_title if act else None,
                 unit=unit.slug if unit else None,
+                act_slug=act.slug if act else None,
             )
         )
     return out
@@ -463,3 +467,88 @@ def close_alarm(
     resolve_alarm(s, alarm, actor=editor.name, resolution=body.resolution)
     s.commit()
     return _alarm_out(alarm)
+
+
+# --- Stosowanie przejściowe aktu uchylonego (arkusz, działanie 2.4) ---------------------------------
+
+
+class TransitionalIn(BaseModel):
+    valid_from: date
+    valid_to: date | None = None
+    basis: str = Field(min_length=3, max_length=500, description="Przepis przejściowy, np. art. 66 ust. 1 …")
+    title: str | None = Field(default=None, max_length=200)
+    description: str = Field(
+        min_length=10, max_length=2000, description="Do jakich spraw stosuje się akt dalej"
+    )
+    task_id: int | None = Field(
+        default=None, description="Zadanie „przepisy przejściowe”, które ta decyzja zamyka"
+    )
+
+
+class ValidityOut(BaseModel):
+    id: int
+    kind: str
+    valid_from: date | None
+    valid_to: date | None
+    basis: str | None
+    title: str | None
+    description: str | None
+    recorded_by: str
+
+
+@router.post(
+    "/akty/{slug}/stosowanie-przejsciowe",
+    response_model=ValidityOut,
+    status_code=201,
+    summary="Decyzja człowieka: akt uchylony stosuje się dalej przejściowo (ocena przepisów przejściowych)",
+)
+def record_transitional(
+    slug: str,
+    body: TransitionalIn,
+    s: Session = Depends(get_session),
+    editor: Editor = Depends(current_editor),
+) -> ValidityOut:
+    if not editor.can("recenzent"):
+        raise HTTPException(403, "O stosowaniu przepisów po utracie mocy decyduje recenzent.")
+    act = s.scalar(select(LegalAct).where(LegalAct.slug == slug))
+    if act is None:
+        raise HTTPException(404, "Nie znaleźliśmy takiego aktu.")
+    if body.valid_to is not None and body.valid_to < body.valid_from:
+        raise HTTPException(422, "Koniec stosowania nie może być wcześniejszy niż początek.")
+    interval = LegalValidityInterval(
+        act_id=act.id,
+        kind=ValidityKind.STOSOWANY_PRZEJSCIOWO,
+        valid_from=body.valid_from,
+        valid_to=body.valid_to,
+        basis=body.basis,
+        title=body.title,
+        description=body.description,
+        source="redakcja",
+        recorded_by=editor.name,
+    )
+    s.add(interval)
+    s.flush()
+    record(
+        s,
+        actor=editor.name,
+        entity="legal_validity_interval",
+        entity_id=interval.id,
+        action="stosowanie_przejsciowe",
+    )
+    if body.task_id is not None:
+        task = s.get(EditorialTask, body.task_id)
+        if task is not None and task.act_id == act.id and task.state == "otwarte":
+            task.state, task.closed_at, task.closed_by = "zamkniete", now(), editor.name
+            task.resolution = f"Stosowanie przejściowe: {body.basis}"
+            record(s, actor=editor.name, entity="editorial_task", entity_id=task.id, action="zamknieto")
+    s.commit()
+    return ValidityOut(
+        id=interval.id,
+        kind=interval.kind,
+        valid_from=interval.valid_from,
+        valid_to=interval.valid_to,
+        basis=interval.basis,
+        title=interval.title,
+        description=interval.description,
+        recorded_by=interval.recorded_by,
+    )

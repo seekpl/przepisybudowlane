@@ -10,7 +10,9 @@ do testów zachowania synchronizacji (idempotencja, wykrywanie zmian, awarie, al
   teksty przepisów w HTML są danymi testowymi, nie źródłem prawa;
 - warunki techniczne (`DU_2002_690`, `DU_2022_1225`) — metadane odwzorowują nagranie z 21.10.2026
   (akt uznany za uchylony, t.j. bez `legalStatusDate`), a `DU_2022_1225.html` to wycinek nagranego
-  HTML (§ 12 i § 13 w oryginalnym układzie ELI).
+  HTML (§ 12 i § 13 w oryginalnym układzie ELI);
+- akt uchylający WT (`DU_2019_1696`) — metadane jak w ELI, HTML **syntetyczny** (oznaczony
+  „[TEKST SYNTETYCZNY]”) do testu wyszukiwania przepisów przejściowych.
 
 ## `recorded/` — nagrania z prawdziwego ELI
 
