@@ -29,10 +29,11 @@ from app.models import (
     TextReview,
 )
 from app.modules.editorial.workflow import ENTITY_MODELS, WorkflowError, entity_name, transition
-from app.modules.freshness.service import unit_text
+from app.modules.freshness.service import current_text, unit_text
 from app.modules.ops.alarms import resolve_alarm
 from app.modules.reports.service import close_report
 from app.modules.search.service import rebuild_index
+from app.modules.sync.service import diff_units
 
 router = APIRouter(prefix="/api/v1/redakcja", tags=["redakcja"])
 
@@ -371,6 +372,7 @@ def decide_text(
     t = s.get(LegalTextVersion, text_id)
     if t is None or t.review_state != TextReview.DO_KONTROLI:
         raise HTTPException(409, "Ta wersja tekstu nie czeka na kontrolę.")
+    previous = current_text(s, t.act_id)
     t.review_state = TextReview.ZAAKCEPTOWANY if body.accept else TextReview.ODRZUCONY
     t.reviewed_by, t.reviewed_at = editor.name, now()
     record(
@@ -381,10 +383,16 @@ def decide_text(
         action=t.review_state,
         komentarz=body.comment,
     )
+    changed = 0
     if body.accept:
+        s.flush()
+        becomes_current = current_text(s, t.act_id) is t
+        if previous is not None and becomes_current:
+            # Przyjęty tekst zastępuje poprzedni: zmienione jednostki zawieszają objaśnienia i węzły kreatora.
+            changed = diff_units(s, t.act, previous, t)
         rebuild_index(s)
     s.commit()
-    return {"id": t.id, "stan": t.review_state}
+    return {"id": t.id, "stan": t.review_state, "zmienione_jednostki": changed}
 
 
 @router.get("/zgloszenia", response_model=list[ReportAdminOut])

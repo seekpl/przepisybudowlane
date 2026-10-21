@@ -3,9 +3,9 @@
 Pola wymagane są ścisłe: brak któregoś to błąd walidacji widoczny w panelu, a nie cicha luka.
 Pozostałe są opcjonalne, a nieznane pola są ignorowane (API może dodawać nowe).
 
-Nazwy kluczy w ``references`` pochodzą z dokumentacji i ISAP; trzeba je potwierdzić
-testem kontraktu na zapisanych odpowiedziach z produkcyjnego API (``cli eli-record``),
-zanim synchronizacja trafi na produkcję. Dlatego role kluczy są w jednym miejscu: ``REFERENCE_ROLES``.
+Nazwy kluczy w ``references`` są potwierdzone testem kontraktu na nagraniach z produkcyjnego API
+(``tests/fixtures/eli/recorded``, workflow ``eli-nagrania``). Role kluczy są w jednym miejscu:
+``REFERENCE_ROLES``; klucz spoza nich i spoza ``contract.IGNORED_REFERENCE_KEYS`` to alarm.
 """
 
 from __future__ import annotations
@@ -81,6 +81,8 @@ REFERENCE_ROLES: dict[str, tuple[str, ...]] = {
     "consolidates": ("Tekst jednolity dla aktu",),
     # Akty, które zmieniły ten akt.
     "amended_by": ("Akty zmieniające", "Zmiany wynikające z"),
+    # Przy obwieszczeniu: nowelizacje, których tekst jednolity nie zawiera (potwierdzone nagraniem 21.10.2026).
+    "amended_after_consolidation": ("Nowelizacje po tekście jednolitym",),
     # Akty, które go uchyliły.
     "repealed_by": ("Akty uchylające", "Uchylenia wynikające z"),
     "executive_acts": ("Akty wykonawcze",),

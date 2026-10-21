@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_sessionmaker
-from app.models import LegalTextVersion, LegalUnit, SourceAlarm, SyncRun
+from app.models import LegalTextVersion, LegalUnit, LegalUnitVersion, SourceAlarm, SyncRun
 from app.modules.archive.storage import Archive
 from app.modules.eli.client import EliClient
 from app.modules.eli.contract import KNOWN_REFERENCE_KEYS, check_metadata
@@ -67,9 +67,13 @@ def test_unknown_reference_key_is_a_violation() -> None:
 def test_consolidated_text_without_legal_status_date_is_a_violation() -> None:
     meta = json.loads((FIXTURES / "DU_2026_524.json").read_text())
     meta.pop("legalStatusDate")
+    meta["inForce"] = "IN_FORCE"
     assert [v.code for v in check_metadata(meta, consolidated_text=True)] == ["brak_stanu_prawnego"]
     # Ten sam brak w akcie bazowym nie jest naruszeniem: stan prawny deklaruje tekst jednolity.
     assert check_metadata(meta) == []
+    # Ani w t.j. aktu uchylonego — tak wygląda prawdziwe DU/2022/1225 (nagranie z 21.10.2026).
+    meta["inForce"] = "NOT_IN_FORCE"
+    assert check_metadata(meta, consolidated_text=True) == []
 
 
 def test_schema_change_and_broken_json_are_violations() -> None:
@@ -236,6 +240,7 @@ def test_recording_collects_violations_instead_of_stopping(  # type: ignore[no-u
     only_act(seeded, "prawo-budowlane")
     meta = json.loads((FIXTURES / "DU_2026_524.json").read_text())
     meta.pop("legalStatusDate")
+    meta["inForce"] = "IN_FORCE"
     fake_eli.set_json("/eli/acts/DU/2026/524", meta)
     client = EliClient(
         "https://api.example.test/eli",
@@ -286,7 +291,7 @@ def test_recorded_index_matches_files() -> None:
 def test_replay_of_recorded_eli_routes_low_quality_texts_to_review(  # type: ignore[no-untyped-def]
     seeded: Session, tmp_path: Path
 ) -> None:
-    """Pełna synchronizacja na nagraniach: kontrakt egzekwowany, parser z progiem jakości."""
+    """Pełna synchronizacja na nagraniach: kontrakt egzekwowany, parser z progiem jakości, PDF do kontroli."""
     report = _service(ReplayTransport(RECORDED, "/eli"), tmp_path / "archive").run("odtworzenie")
     assert report.status == "sukces", report.errors
     threshold = get_settings().parser_quality_threshold
@@ -294,8 +299,14 @@ def test_replay_of_recorded_eli_routes_low_quality_texts_to_review(  # type: ign
     texts = seeded.scalars(select(LegalTextVersion).where(LegalTextVersion.origin == "eli")).all()
     assert texts
     for tv in texts:
-        good = tv.parse_quality is not None and tv.parse_quality >= threshold
+        from_pdf = (tv.parser_version or "").endswith("+pdf")
+        good = not from_pdf and tv.parse_quality is not None and tv.parse_quality >= threshold
         assert tv.review_state == ("zaakceptowany" if good else "do_kontroli"), tv.journal_display
+    # Każdy tekst — także z PDF — ma jednostki, więc człowiek porównuje odczyt, a nie przepisuje tekst.
+    assert all(
+        seeded.scalar(select(LegalUnitVersion.id).where(LegalUnitVersion.text_version_id == tv.id))
+        for tv in texts
+    )
     assert seeded.scalar(select(SyncRun).where(SyncRun.status == "wstrzymany")) is None
 
 

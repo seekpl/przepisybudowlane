@@ -12,8 +12,10 @@ from app.models import (
     ContentFlag,
     DetectedAmendment,
     EditorialTask,
+    Explanation,
     ExplanationVersion,
     LegalTextVersion,
+    LegalUnit,
     LegalUnitVersion,
     SourceFetch,
     SourceSnapshot,
@@ -269,3 +271,38 @@ def test_search_index_contains_synced_articles(seeded: Session, make_sync) -> No
 
     hits = search(seeded, "strony postępowania obszar oddziaływania").hits
     assert any(h.ref == "prawo-budowlane-art-28" for h in hits)
+
+
+def test_accepting_reviewed_text_replaces_previous_and_suspends_changed_explanations(  # type: ignore[no-untyped-def]
+    seeded: Session, make_sync, fake_eli: FakeEli, api
+) -> None:
+    only_act(seeded, "prawo-budowlane")
+    html = (FIXTURES / "DU_2026_524.html").read_text(encoding="utf-8")
+    html = html.replace("z zastrzeżeniem art. 29–31.", "z zastrzeżeniem art. 29–31a.")
+    # Cofnięta numeracja obniża jakość — tekst idzie do kontroli zamiast prosto na kartę.
+    fake_eli.routes[PB_TEXT] = (200, (html + "<p>Art. 3. Cofnięta numeracja.</p>").encode(), "text/html")
+    make_sync().run()
+    seeded.expire_all()
+    tv = seeded.scalar(select(LegalTextVersion).where(LegalTextVersion.origin == "eli"))
+    assert tv.review_state == "do_kontroli"
+    assert fresh.current_text(seeded, tv.act_id).origin == "redakcja"
+
+    res = api.post(
+        f"/api/v1/redakcja/teksty/{tv.id}/decyzja",
+        headers={"Authorization": "Bearer tok-jan"},
+        json={"accept": True, "comment": "Porównane z oryginałem w Dz.U."},
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["zmienione_jednostki"] >= 1
+    seeded.expire_all()
+    assert fresh.current_text(seeded, tv.act_id).id == tv.id
+    unit = seeded.scalar(select(LegalUnit).where(LegalUnit.slug == "prawo-budowlane-art-28-ust-1"))
+    explanation = seeded.scalar(
+        select(ExplanationVersion)
+        .join(Explanation, Explanation.id == ExplanationVersion.explanation_id)
+        .where(Explanation.unit_id == unit.id)
+    )
+    assert explanation.state == "zawieszony"
+    assert seeded.scalar(
+        select(EditorialTask).where(EditorialTask.kind == "zmiana_tekstu", EditorialTask.unit_id == unit.id)
+    )

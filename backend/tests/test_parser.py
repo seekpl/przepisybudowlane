@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from app.modules.parser.units import html_to_lines, parse_units
 from tests.conftest import FIXTURES
 
@@ -77,3 +79,120 @@ def test_content_hash_is_stable_and_sensitive() -> None:
     b = parse_units("<p>Art. 1.   Tekst.</p>").units["art_1"]
     c = parse_units("<p>Art. 1. Tekst zmieniony.</p>").units["art_1"]
     assert a.content_hash == b.content_hash != c.content_hash
+
+
+# --- struktura ELI (HTML z api.sejm.gov.pl) --------------------------------------------------------
+
+ELI_HTML = """<html><body>
+<h1><span class="head-type">Obwieszczenie Ministra</span></h1>
+<section id="part_1"><div class="unit unit_pass" data-id="pass_1" id="pass_1"><h3>1.</h3>
+  <div class="unit-inner"><div class="pro-text" data-template="xText">Ogłasza się tekst jednolity.</div></div></div>
+</section>
+<section id="part_2"><div class="part"><h2 class="part">Załącznik - Tekst jednolity rozporządzenia</h2>
+ <div class="unit unit_bran" data-id="bran_II" id="bran_II"><div class="unit-inner">
+  <div class="unit unit_para" data-id="para_12" id="bran_II-para_12"><h3><b>§&nbsp;12.</b></h3><div class="unit-inner">
+   <div class="unit unit_pass" data-id="pass_1" id="bran_II-para_12-pass_1"><h3>1.</h3><div class="unit-inner">
+     <div class="pro-text" data-template="xText">Budynek należy sytuować<a class="gloss-link tooltip" href="#g"><sup>3)</sup>
+       <span class="tooltip-text">Przypis o zmianie § 12.</span></a> w odległości nie mniejszej niż:</div>
+     <div class="unit unit_pint" data-id="pint_1" id="p1"><h3>1)</h3><div class="unit-inner">
+       <div class="pro-text" data-template="xText">4 m – ze ścianą z oknami,</div></div></div>
+     <div class="unit unit_pint" data-id="pint_2" id="p2"><h3>2)</h3><div class="unit-inner">
+       <div class="pro-text" data-template="xText">3 m – ze ścianą bez okien</div></div></div>
+     <div class="pro-text" data-template="xText">– od granicy działki o powierzchni 20 m<sup>2</sup>.</div>
+   </div></div>
+   <div class="unit unit_pass" data-id="pass_2" id="bran_II-para_12-pass_2"><h3>2 <a class="gloss-link"><sup>4)</sup></a> .</h3>
+     <div class="unit-inner"><div class="pro-text" data-template="xText">(uchylony)</div></div></div>
+  </div></div>
+ </div></div>
+</div></section>
+<section id="part_3"><h2>Załącznik nr 1 - Wykaz norm</h2>
+ <div class="unit unit_para" data-id="para_1" id="z-para_1"><h3>§ 1.</h3><div class="unit-inner">
+   <div class="pro-text" data-template="xText">Nie należy do tekstu jednolitego.</div></div></div>
+</section>
+</body></html>"""
+
+
+def test_eli_structure_takes_consolidated_text_from_annex_without_footnotes() -> None:
+    r = parse_units(ELI_HTML)
+    assert r.quality == 1.0, r.issues
+    assert set(r.units) == {
+        "par_12",
+        "par_12.ust_1",
+        "par_12.ust_1.pkt_1",
+        "par_12.ust_1.pkt_2",
+        "par_12.ust_2",
+    }
+    ust = r.units["par_12.ust_1"].content
+    assert ust[0] == {"unit": "§ 12. 1.", "text": "Budynek należy sytuować w odległości nie mniejszej niż:"}
+    # Część wspólna po wyliczeniu należy do ustępu, nie do ostatniego punktu.
+    assert ust[-1] == {"unit": "", "text": "– od granicy działki o powierzchni 20 m²."}
+    assert r.units["par_12.ust_1.pkt_2"].content == [
+        ust[0],
+        {"unit": "2)", "text": "3 m – ze ścianą bez okien"},
+    ]
+    # Odsyłacz do przypisu w oznaczeniu jednostki znika razem z przypisem.
+    assert r.units["par_12.ust_2"].content == [{"unit": "2.", "text": "(uchylony)"}]
+
+
+def test_eli_structure_flags_units_out_of_place() -> None:
+    html = ELI_HTML.replace('data-id="pint_2"', 'data-id="none_2"')
+    r = parse_units(html)
+    assert r.quality < 1.0
+    assert any("bez rozpoznanego rodzaju" in i for i in r.issues)
+
+
+# --- nagrania z prawdziwego ELI ----------------------------------------------------------------------
+
+RECORDED = FIXTURES / "recorded" / "acts" / "DU"
+WT_TJ = RECORDED / "2022" / "1225" / "text.html"
+PB_TJ = RECORDED / "2026" / "524" / "text.pdf"
+
+
+@pytest.mark.skipif(not WT_TJ.exists(), reason="brak nagrania t.j. warunków technicznych")
+def test_real_eli_html_consolidated_text() -> None:
+    from app.config import get_settings
+
+    r = parse_units(WT_TJ.read_text(encoding="utf-8"))
+    assert r.quality >= get_settings().parser_quality_threshold, r.issues[:10]
+    par = r.units["par_12.ust_1"].content
+    assert par[0]["unit"] == "§ 12. 1."
+    assert par[0]["text"].startswith("Jeżeli z przepisów § 13, 19, 23, 36, 40, 60 i 271-273")
+    assert par[1:] == [
+        {
+            "unit": "1)",
+            "text": "4 m - w przypadku budynku zwróconego ścianą z oknami lub drzwiami w stronę tej granicy;",
+        },
+        {
+            "unit": "2)",
+            "text": "3 m - w przypadku budynku zwróconego ścianą bez okien i drzwi w stronę tej granicy.",
+        },
+    ]
+    # Treść obwieszczenia i przypisy nie trafiają do jednostek tekstu jednolitego.
+    assert not any("Ogłasza się" in p["text"] for u in r.units.values() for p in u.content)
+
+
+@pytest.fixture(scope="module")
+def pb_pdf():  # type: ignore[no-untyped-def]
+    from app.modules.parser.pdf import parse_pdf
+
+    return parse_pdf(PB_TJ.read_bytes())
+
+
+@pytest.mark.skipif(not PB_TJ.exists(), reason="brak nagrania t.j. Prawa budowlanego")
+def test_real_pdf_consolidated_text(pb_pdf) -> None:  # type: ignore[no-untyped-def]
+    r = pb_pdf
+    assert next(iter(r.units)) == "art_1" and "art_108" in r.units
+    assert r.units["art_28.ust_1"].content == [
+        {
+            "unit": "Art. 28. 1.",
+            "text": "Roboty budowlane można rozpocząć jedynie na podstawie decyzji o pozwoleniu na budowę, "
+            "z zastrzeżeniem art. 29–31.",
+        }
+    ]
+    pkt = r.units["art_29.ust_1.pkt_1a"].content
+    assert pkt[1]["unit"] == "1a)"
+    assert "o powierzchni zabudowy do 70 m², których obszar oddziaływania" in pkt[1]["text"]
+    # Odsyłacz do przypisu („1b)¹⁵⁾”) nie zostaje w oznaczeniu ani w tekście.
+    assert r.units["art_29.ust_1.pkt_1b"].content[1]["unit"] == "1b)"
+    # Tekst obwieszczenia (przepisy przejściowe nowelizacji) nie trafia do jednostek ustawy.
+    assert not any("Marszałek Sejmu" in p["text"] for u in r.units.values() for p in u.content)

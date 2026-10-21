@@ -58,7 +58,8 @@ from app.modules.eli.contract import ContractViolationError, check_metadata
 from app.modules.eli.schemas import ActMetadata, ChangeEntry
 from app.modules.freshness.engine import Amendment, is_later_than
 from app.modules.ops.alarms import open_alarm
-from app.modules.parser.units import parse_units
+from app.modules.parser.pdf import parse_pdf
+from app.modules.parser.units import ParseResult, parse_units
 from app.modules.registry.units import unit_slug
 
 ACTOR = "system:synchronizacja"
@@ -385,10 +386,10 @@ class SyncService:
             if new_version is not None:
                 outcome.new_text_version = True
                 if new_version.review_state == TextReview.ZAAKCEPTOWANY and current is not None:
-                    outcome.changed_units = self._diff_units(s, act, current, new_version)
+                    outcome.changed_units = diff_units(s, act, current, new_version)
 
         if status_date is not None:
-            outcome.new_amendments = self._detect_amendments(s, act, meta, status_date)
+            outcome.new_amendments = self._detect_amendments(s, act, meta, status_date, src_meta)
 
     def _record_validity(self, s: Session, act: LegalAct, meta: ActMetadata) -> None:
         """Zapisuje przedział obowiązywania z metadanych tylko wtedy, gdy się zmienił (bez duplikatów)."""
@@ -460,32 +461,32 @@ class SyncService:
             origin=SOURCE,
             incorporated=[],
         )
-        if not src.text_html:
-            version.review_state = TextReview.DO_KONTROLI
-            version.note = "Tekst dostępny tylko w PDF — wymaga kontroli człowieka przed publikacją."
-            s.add(version)
-            s.flush()
-            tasks.ensure_task(
-                s,
-                kind=TaskKind.KONTROLA_PARSERA,
-                act_id=act.id,
-                dedupe_key=f"kontrola:{act.id}:{fetched.snapshot.sha256}",
-                title=f"{act.short_title}: tekst {src.journal_display} tylko w PDF — sprawdź i wprowadź strukturę",
-                details={"tekst": src.eli, "wersja_tekstu": version.id},
-            )
-            return version
-
-        result = parse_units(fetched.content.decode("utf-8", errors="replace"))
-        version.parser_version = result.parser_version
+        from_pdf = not src.text_html
+        if from_pdf:
+            try:
+                result = parse_pdf(fetched.content)
+            except Exception as exc:  # uszkodzony albo nietypowy PDF: człowiek dostaje zadanie, nie wyjątek
+                result = ParseResult(units={}, quality=0.0, issues=[f"Nie udało się odczytać PDF: {exc}"])
+        else:
+            result = parse_units(fetched.content.decode("utf-8", errors="replace"))
+        version.parser_version = result.parser_version + ("+pdf" if from_pdf else "")
         version.parse_quality = result.quality
-        accepted = result.quality >= self.settings.parser_quality_threshold and bool(result.units)
+        # Tekst z PDF nigdy nie jest publikowany automatycznie: odczyt z położenia znaków sprawdza człowiek.
+        accepted = (
+            not from_pdf and result.quality >= self.settings.parser_quality_threshold and bool(result.units)
+        )
         version.review_state = TextReview.ZAAKCEPTOWANY if accepted else TextReview.DO_KONTROLI
         if accepted:
             version.reviewed_by = ACTOR
             version.reviewed_at = now()
+        elif from_pdf:
+            version.note = (
+                "Tekst dostępny w ELI tylko w PDF — odczytany automatycznie; porównaj z oryginałem przed publikacją. "
+                + "; ".join(result.issues[1:6])
+            ).strip()
         else:
             version.note = "Niska ocena parsera: " + (
-                "; ".join(result.issues) or f"jakość {result.quality:.2f}"
+                "; ".join(result.issues[:6]) or f"jakość {result.quality:.2f}"
             )
         s.add(version)
         s.flush()
@@ -520,12 +521,17 @@ class SyncService:
             stan=version.review_state,
         )
         if not accepted:
+            what = (
+                "tekst tylko w PDF — porównaj odczyt z oryginałem"
+                if from_pdf
+                else "wynik parsera wymaga kontroli"
+            )
             tasks.ensure_task(
                 s,
                 kind=TaskKind.KONTROLA_PARSERA,
                 act_id=act.id,
                 dedupe_key=f"kontrola:{act.id}:{fetched.snapshot.sha256}",
-                title=f"{act.short_title}: wynik parsera {src.journal_display} wymaga kontroli",
+                title=f"{act.short_title}: {src.journal_display} — {what}",
                 details={
                     "tekst": src.eli,
                     "jakosc": result.quality,
@@ -535,61 +541,9 @@ class SyncService:
             )
         return version
 
-    def _diff_units(self, s: Session, act: LegalAct, old: LegalTextVersion, new: LegalTextVersion) -> int:
-        def hashes(version_id: int) -> dict[int, str]:
-            rows = s.execute(
-                select(LegalUnitVersion.unit_id, LegalUnitVersion.content_hash).where(
-                    LegalUnitVersion.text_version_id == version_id
-                )
-            ).all()
-            return {unit_id: h for unit_id, h in rows}
-
-        before, after = hashes(old.id), hashes(new.id)
-        changed_ids = [uid for uid, h in before.items() if after.get(uid) != h]
-        for unit_id in changed_ids:
-            unit = s.get(LegalUnit, unit_id)
-            assert unit is not None
-            removed = unit_id not in after
-            what = "zniknęła z nowego tekstu" if removed else "ma nowe brzmienie"
-            reason = f"{act.short_title}, {unit.label} {what} ({new.journal_display}). Treść czeka na ponowne sprawdzenie."
-            self._suspend_dependent(s, unit, reason)
-            tasks.ensure_task(
-                s,
-                kind=TaskKind.ZMIANA_TEKSTU,
-                act_id=act.id,
-                unit_id=unit_id,
-                dedupe_key=f"zmiana:{unit_id}:{new.id}",
-                title=f"{act.short_title}, {unit.label}: {what}",
-                details={"poprzedni_tekst": old.id, "nowy_tekst": new.id},
-            )
-        return len(changed_ids)
-
-    def _suspend_dependent(self, s: Session, unit: LegalUnit, reason: str) -> None:
-        """Zawiesza opublikowane objaśnienia i węzły kreatora oparte na zmienionej jednostce.
-
-        Jednostka nadrzędna zmienia się razem z każdą podrzędną (jej treść je zawiera), więc
-        wystarczy dokładne dopasowanie — objaśnienie pkt 1a nie jest zawieszane przez zmianę pkt 2.
-        """
-        published = s.scalars(
-            select(ExplanationVersion)
-            .join(Explanation, Explanation.id == ExplanationVersion.explanation_id)
-            .where(Explanation.unit_id == unit.id, ExplanationVersion.state == EditorialState.OPUBLIKOWANY)
-        ).all()
-        for version in published:
-            system_suspend(s, version, reason=reason, actor=ACTOR)
-
-        nodes = s.scalars(
-            select(DecisionTreeNodeVersion)
-            .join(DecisionTreeVersion, DecisionTreeVersion.id == DecisionTreeNodeVersion.tree_version_id)
-            .where(DecisionTreeVersion.state == EditorialState.OPUBLIKOWANY)
-        ).all()
-        for node in nodes:
-            if unit.slug in (node.unit_slugs or []):
-                flag_content(
-                    s, entity="decision_tree_node_version", entity_id=node.id, reason=reason, actor=ACTOR
-                )
-
-    def _detect_amendments(self, s: Session, act: LegalAct, meta: ActMetadata, status_date: date) -> int:
+    def _detect_amendments(
+        self, s: Session, act: LegalAct, meta: ActMetadata, status_date: date, src_meta: ActMetadata
+    ) -> int:
         """Zapisuje nowelizacje z okna wokół stanu prawnego tekstu; zadanie tworzy dla tych, których tekst nie zawiera.
 
         Nowelizacja ogłoszona przed stanem prawnym, ale wchodząca w życie później, też nie jest w tekście —
@@ -601,8 +555,18 @@ class SyncService:
         )
         window_start = status_date - timedelta(days=365)
         new_count = 0
-        for ref in meta.refs("amended_by"):
-            if ref.id in known or (ref.on is not None and ref.on < window_start):
+        # Obwieszczenie wprost wymienia nowelizacje, których tekst jednolity nie zawiera — te bierzemy
+        # zawsze; pozostałe z listy aktu bazowego tylko z okna wokół stanu prawnego.
+        after = (
+            {r.id for r in src_meta.refs("amended_after_consolidation")} if src_meta is not meta else set()
+        )
+        refs = (
+            [*src_meta.refs("amended_after_consolidation"), *meta.refs("amended_by")]
+            if after
+            else meta.refs("amended_by")
+        )
+        for ref in refs:
+            if ref.id in known or (ref.id not in after and ref.on is not None and ref.on < window_start):
                 continue
             _, am = self._metadata(ref.id, kind="metadata_nowelizacja", act_id=act.id)
             published = am.promulgation or ref.on
@@ -645,3 +609,64 @@ class SyncService:
                 due_on=am.entry_into_force,
             )
         return new_count
+
+
+def diff_units(s: Session, act: LegalAct, old: LegalTextVersion, new: LegalTextVersion) -> int:
+    """Jednostki zmienione między tekstami: zawiesza zależne treści i tworzy zadania „zmiana tekstu”.
+
+    Wywołuje ją synchronizacja (tekst przyjęty automatycznie) i redakcja (tekst przyjęty po kontroli).
+    """
+
+    def hashes(version_id: int) -> dict[int, str]:
+        rows = s.execute(
+            select(LegalUnitVersion.unit_id, LegalUnitVersion.content_hash).where(
+                LegalUnitVersion.text_version_id == version_id
+            )
+        ).all()
+        return {unit_id: h for unit_id, h in rows}
+
+    before, after = hashes(old.id), hashes(new.id)
+    changed_ids = [uid for uid, h in before.items() if after.get(uid) != h]
+    for unit_id in changed_ids:
+        unit = s.get(LegalUnit, unit_id)
+        assert unit is not None
+        removed = unit_id not in after
+        what = "zniknęła z nowego tekstu" if removed else "ma nowe brzmienie"
+        reason = f"{act.short_title}, {unit.label} {what} ({new.journal_display}). Treść czeka na ponowne sprawdzenie."
+        suspend_dependent(s, unit, reason)
+        tasks.ensure_task(
+            s,
+            kind=TaskKind.ZMIANA_TEKSTU,
+            act_id=act.id,
+            unit_id=unit_id,
+            dedupe_key=f"zmiana:{unit_id}:{new.id}",
+            title=f"{act.short_title}, {unit.label}: {what}",
+            details={"poprzedni_tekst": old.id, "nowy_tekst": new.id},
+        )
+    return len(changed_ids)
+
+
+def suspend_dependent(s: Session, unit: LegalUnit, reason: str) -> None:
+    """Zawiesza opublikowane objaśnienia i węzły kreatora oparte na zmienionej jednostce.
+
+    Jednostka nadrzędna zmienia się razem z każdą podrzędną (jej treść je zawiera), więc
+    wystarczy dokładne dopasowanie — objaśnienie pkt 1a nie jest zawieszane przez zmianę pkt 2.
+    """
+    published = s.scalars(
+        select(ExplanationVersion)
+        .join(Explanation, Explanation.id == ExplanationVersion.explanation_id)
+        .where(Explanation.unit_id == unit.id, ExplanationVersion.state == EditorialState.OPUBLIKOWANY)
+    ).all()
+    for version in published:
+        system_suspend(s, version, reason=reason, actor=ACTOR)
+
+    nodes = s.scalars(
+        select(DecisionTreeNodeVersion)
+        .join(DecisionTreeVersion, DecisionTreeVersion.id == DecisionTreeNodeVersion.tree_version_id)
+        .where(DecisionTreeVersion.state == EditorialState.OPUBLIKOWANY)
+    ).all()
+    for node in nodes:
+        if unit.slug in (node.unit_slugs or []):
+            flag_content(
+                s, entity="decision_tree_node_version", entity_id=node.id, reason=reason, actor=ACTOR
+            )

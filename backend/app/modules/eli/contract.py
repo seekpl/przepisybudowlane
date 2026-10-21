@@ -67,7 +67,9 @@ def check_metadata(raw: bytes | str | dict[str, Any], *, consolidated_text: bool
                 "nieznany_klucz_powiazania", f"{meta.eli}: nieznane klucze powiązań: {', '.join(unknown)}"
             )
         )
-    if consolidated_text and meta.legal_status_date is None:
+    # Obowiązujący tekst jednolity musi deklarować stan prawny. Nagranie z 21.10.2026 pokazało, że
+    # t.j. aktu uchylonego (DU/2022/1225) go nie ma — wtedy karta mówi „nie potwierdzono”, ale to nie alarm.
+    if consolidated_text and meta.legal_status_date is None and meta.in_force != "NOT_IN_FORCE":
         violations.append(
             Violation("brak_stanu_prawnego", f"{meta.eli}: tekst jednolity bez pola legalStatusDate")
         )

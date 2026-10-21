@@ -1,9 +1,15 @@
-"""Parser jednostek redakcyjnych: HTML tekstu aktu → artykuły/paragrafy, ustępy, punkty, litery.
+"""Parser jednostek redakcyjnych: tekst aktu → artykuły/paragrafy, ustępy, punkty, litery.
 
-Działa na tekście bloków, a nie na znacznikach konkretnego wydawcy — zmiana układu HTML w ELI
-nie psuje go po cichu, tylko obniża ocenę jakości. Wynik poniżej progu trafia do kontroli człowieka.
+Dwie drogi, ten sam kształt wyniku:
 
-Tekst przepisu przenosimy bez zmian: normalizujemy wyłącznie białe znaki.
+- **struktura ELI** — HTML z ELI API oznacza każdą jednostkę (``div.unit`` z ``data-id`` ``arti_28``,
+  ``pass_1``, ``pint_1a``…); bierzemy ją wprost, pomijając przypisy (``a.gloss-link``), a w obwieszczeniu
+  o tekście jednolitym tylko załącznik z tym tekstem;
+- **wiersze tekstu** — HTML bez tej struktury i tekst wyciągnięty z PDF (``parser.pdf``): rozpoznawanie
+  oznaczeń jednostek na początku wierszy.
+
+Zmiana układu źródła nie psuje parsera po cichu, tylko obniża ocenę jakości; wynik poniżej progu trafia
+do kontroli człowieka. Tekst przepisu przenosimy bez zmian: normalizujemy wyłącznie białe znaki.
 """
 
 from __future__ import annotations
@@ -17,7 +23,7 @@ from bs4 import BeautifulSoup, Comment, Declaration, Doctype, NavigableString, P
 
 from app.modules.registry.units import unit_label
 
-PARSER_VERSION = "units-1.0"
+PARSER_VERSION = "units-1.1"
 
 _BLOCK_TAGS = {
     "p",
@@ -141,18 +147,38 @@ def html_to_lines(html: str) -> list[str]:
     return lines
 
 
-class _Builder:
+class _Units:
+    """Zbiera akapity w jednostkach: każdy akapit trafia do bieżącej jednostki i wszystkich nadrzędnych."""
+
     def __init__(self) -> None:
         self.units: dict[str, ParsedUnit] = {}
         self.issues: list[str] = []
+        self.lead_in: dict[str, Paragraph] = {}
+
+    def emit(self, keys: list[str], para: Paragraph) -> None:
+        for key in keys:
+            unit = self.units.get(key)
+            if unit is None:
+                unit = ParsedUnit(key=key, label=unit_label(key))
+                # Punkt i litera dostają wprowadzenie wyliczenia jednostki nadrzędnej — bez niego nie da się go czytać.
+                parent = key.rsplit(".", 1)[0] if "." in key else None
+                if parent and parent in self.lead_in and key.rsplit(".", 1)[1].startswith(("pkt_", "lit_")):
+                    unit.paragraphs.append(self.lead_in[parent])
+                self.units[key] = unit
+            unit.paragraphs.append(para)
+        if keys:
+            self.lead_in.setdefault(keys[-1], para)
+
+
+class _Builder(_Units):
+    def __init__(self) -> None:
+        super().__init__()
         self.top_kind: str | None = None  # "art" | "par"
         self.top: str | None = None
         self.mid: str | None = None  # ustęp albo § wewnątrz artykułu
         self.mid_kind: str | None = None
         self.pkt: str | None = None
         self.lit: str | None = None
-        self.lead_in: dict[str, Paragraph] = {}
-        self.last: Paragraph | None = None
         # „Art. 29.” w osobnym wierszu łączymy z oznaczeniem pierwszego ustępu: „Art. 29. 1.”.
         self.pending: str | None = None
 
@@ -178,20 +204,7 @@ class _Builder:
         return unit_label(key)
 
     def _emit(self, para: Paragraph) -> None:
-        keys = self._keys()
-        for key in keys:
-            unit = self.units.get(key)
-            if unit is None:
-                unit = ParsedUnit(key=key, label=self._label(key))
-                # Punkt i litera dostają wprowadzenie wyliczenia jednostki nadrzędnej — bez niego nie da się go czytać.
-                parent = key.rsplit(".", 1)[0] if "." in key else None
-                if parent and parent in self.lead_in and key.rsplit(".", 1)[1].startswith(("pkt_", "lit_")):
-                    unit.paragraphs.append(self.lead_in[parent])
-                self.units[key] = unit
-            unit.paragraphs.append(para)
-        if keys:
-            self.lead_in.setdefault(keys[-1], para)
-        self.last = para
+        self.emit(self._keys(), para)
 
     # --- przejścia
     def _flush_pending(self) -> None:
@@ -255,7 +268,15 @@ class _Builder:
 
 
 def parse_units(html: str) -> ParseResult:
-    lines = html_to_lines(html)
+    """HTML tekstu aktu → jednostki. Struktura ELI, jeśli jest; inaczej rozpoznawanie wierszy."""
+    soup = BeautifulSoup(html, "html.parser")
+    if soup.select_one("div.unit[data-id]") is not None:
+        return parse_eli_structure(soup)
+    return parse_lines(html_to_lines(html))
+
+
+def parse_lines(lines: list[str]) -> ParseResult:
+    """Wiersze tekstu (z HTML albo z PDF) → jednostki, z oceną jakości."""
     b = _Builder()
     started = False
     counted = 0
@@ -314,3 +335,112 @@ def parse_units(html: str) -> ParseResult:
 def _leading_int(num: str) -> int | None:
     m = re.match(r"\d+", num)
     return int(m.group(0)) if m else None
+
+
+# --- struktura ELI ----------------------------------------------------------------------------------
+
+# Rodzaje jednostek w ``data-id`` ELI → nasze klucze. Pozostałe (dział, rozdział, tiret, „none”) nie mają
+# własnego klucza: tiret zostaje w bieżącej jednostce, jednostki działu i rozdziału tylko porządkują tekst.
+_ELI_KINDS = {"arti": "art", "para": "par", "pass": "ust", "pint": "pkt", "lett": "lit"}
+_ELI_CONTAINERS = {"bran", "chpt", "sect", "subs", "titl", "book", "part", "divi"}
+_SPACE_BEFORE_PUNCT = re.compile(r"\s+([.)])")
+
+
+def _clean_tag(tag: Tag) -> str:
+    for a in tag.select("a.gloss-link, .tooltip-text"):
+        a.decompose()
+    for sup in tag.find_all("sup"):
+        sup.replace_with(sup.get_text().translate(_SUPERSCRIPT))
+    text = "".join(str(s) for s in tag.find_all(string=True) if not isinstance(s, Comment))
+    return _WS.sub(" ", text.replace("\u00a0", " ")).strip()
+
+
+def _text_part(soup: BeautifulSoup) -> Tag:
+    """Obwieszczenie o tekście jednolitym: tylko załącznik z tekstem. Akt: część główna, bez załączników."""
+    sections = soup.select("section[id^=part_]")
+    if not sections:
+        return soup.body or soup
+    for section in sections:
+        heading = section.find(["h2", "h1"])
+        if heading is not None and "tekst jednolity" in heading.get_text(" ", strip=True).lower():
+            return section
+    return sections[0]
+
+
+def _child_units(tag: Tag) -> list[Tag]:
+    """Najbliższe jednostki pod ``tag`` (bez zagnieżdżonych głębiej)."""
+    found: list[Tag] = []
+    for child in tag.find_all(True, recursive=False):
+        if "unit" in (child.get("class") or []) and child.get("data-id"):
+            found.append(child)
+        else:
+            found.extend(_child_units(child))
+    return found
+
+
+def parse_eli_structure(soup: BeautifulSoup) -> ParseResult:
+    """Jednostki wprost ze znaczników ELI. Jakość = udział jednostek rozpoznanych bez zastrzeżeń."""
+    for el in soup(["script", "style", "head", "template"]):
+        el.decompose()
+    acc = _Units()
+    seen = 0
+    problems = 0
+
+    def visit(div: Tag, keys: list[str], pending: str | None) -> None:
+        nonlocal seen, problems
+        kind, _, num = str(div.get("data-id")).partition("_")
+        mapped = _ELI_KINDS.get(kind)
+        if kind in _ELI_CONTAINERS:
+            for child in _child_units(div):
+                visit(child, keys, None)
+            return
+        seen += 1
+        heading = div.find("h3", recursive=False)
+        label = _SPACE_BEFORE_PUNCT.sub(r"\1", _clean_tag(heading)) if heading is not None else ""
+        if mapped is None:
+            if kind != "tire":
+                problems += 1
+                acc.issues.append(f"Jednostka bez rozpoznanego rodzaju: {div.get('id')}")
+            own_keys = keys
+        else:
+            if not keys and mapped not in ("art", "par"):
+                problems += 1
+                acc.issues.append(f"Jednostka poza artykułem lub paragrafem: {div.get('id')}")
+                return
+            key = f"{mapped}_{num}" if not keys else f"{keys[-1]}.{mapped}_{num}"
+            if key in acc.units:
+                problems += 1
+                acc.issues.append(f"Powtórzona jednostka: {unit_label(key)}")
+            own_keys = [*keys, key]
+        prefix = f"{pending} {label}".strip() if pending else label
+        inner = div.find("div", class_="unit-inner", recursive=False) or div
+        first = True
+        for child in inner.find_all(True, recursive=False):
+            if "unit" in (child.get("class") or []) and child.get("data-id"):
+                if first and mapped in ("art", "par") and not keys:
+                    # „Art. 28.” bez własnego tekstu łączymy z oznaczeniem pierwszego ustępu: „Art. 28. 1.”.
+                    visit(child, own_keys, prefix)
+                else:
+                    if first:
+                        acc.emit(own_keys, Paragraph(prefix, ""))
+                    visit(child, own_keys, None)
+                first = False
+            elif child.get("data-template") == "xText" or "pro-text" in (child.get("class") or []):
+                text = _clean_tag(child)
+                if not text:
+                    continue
+                # Tekst po wyliczeniu (część wspólna) należy do tej jednostki, nie do ostatniego punktu.
+                acc.emit(own_keys, Paragraph(prefix if first else "", text))
+                first = False
+            else:
+                for unit in _child_units(child):
+                    visit(unit, own_keys, None)
+        if first:
+            acc.emit(own_keys, Paragraph(prefix, ""))
+
+    for top in _child_units(_text_part(soup)):
+        visit(top, [], None)
+    if not acc.units:
+        return ParseResult(units={}, quality=0.0, issues=["Nie znaleziono żadnego artykułu ani paragrafu"])
+    quality = 1.0 - problems / max(seen, 1)
+    return ParseResult(units=acc.units, quality=round(max(0.0, quality), 4), issues=acc.issues)
