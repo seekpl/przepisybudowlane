@@ -38,6 +38,7 @@ from app.models import (
     LegalUnit,
     LegalUnitVersion,
     LegalValidityInterval,
+    SourceAlarm,
     SourceFetch,
     SourceSnapshot,
     SyncCheckpoint,
@@ -53,8 +54,10 @@ from app.modules.editorial import tasks
 from app.modules.editorial.flags import flag_content
 from app.modules.editorial.workflow import system_suspend
 from app.modules.eli.client import EliClient, EliError, act_path
+from app.modules.eli.contract import ContractViolationError, check_metadata
 from app.modules.eli.schemas import ActMetadata, ChangeEntry
 from app.modules.freshness.engine import Amendment, is_later_than
+from app.modules.ops.alarms import open_alarm
 from app.modules.parser.units import parse_units
 from app.modules.registry.units import unit_slug
 
@@ -89,6 +92,8 @@ class SyncReport:
     status: str
     outcomes: list[ActOutcome] = field(default_factory=list)
     errors: list[dict[str, Any]] = field(default_factory=list)
+    alarm: str | None = None
+    contract_violations: list[dict[str, str]] = field(default_factory=list)
 
 
 class SyncService:
@@ -98,16 +103,24 @@ class SyncService:
         client: EliClient,
         archive: Archive,
         settings: Settings,
+        *,
+        enforce_contract: bool = True,
     ) -> None:
         self.session_factory = session_factory
         self.client = client
         self.archive = archive
         self.settings = settings
+        # Przy nagrywaniu (enforce_contract=False) naruszenia tylko zbieramy — o wyniku decyduje test kontraktu.
+        self.enforce_contract = enforce_contract
+        self.contract_violations: list[dict[str, str]] = []
         self._run_id: int | None = None
 
     # --- przebieg ----------------------------------------------------------------------
 
     def run(self, trigger: str = "manual") -> SyncReport:
+        paused = self._paused(trigger)
+        if paused is not None:
+            return paused
         with self.session_factory() as s:
             checkpoint = s.get(SyncCheckpoint, SOURCE)
             since = (
@@ -132,14 +145,24 @@ class SyncService:
                 # Bez listy zmian odświeżamy wszystko — wolniej, ale bez ryzyka przeoczenia.
                 report.errors.append({"etap": "lista zmian", "blad": str(exc)})
 
+        violation: ContractViolationError | None = None
         for act_id in act_ids:
-            outcome = self._sync_act(act_id, changed)
+            try:
+                outcome = self._sync_act(act_id, changed)
+            except ContractViolationError as exc:
+                # Źródło zmieniło format: nie przetwarzamy niczego dalej, dopóki człowiek nie sprawdzi alarmu.
+                violation = exc
+                report.errors.append({"etap": "kontrakt ELI", "blad": str(exc)})
+                break
             report.outcomes.append(outcome)
             if not outcome.ok:
                 report.errors.append({"akt": outcome.act, "blad": outcome.error})
+        report.contract_violations = list(self.contract_violations)
 
         failed = [o for o in report.outcomes if not o.ok]
-        if not report.outcomes:
+        if violation is not None:
+            status = SyncStatus.WSTRZYMANY
+        elif not report.outcomes:
             status = SyncStatus.SUKCES if not report.errors else SyncStatus.BLAD
         elif not failed:
             status = SyncStatus.SUKCES if not report.errors else SyncStatus.CZESCIOWY
@@ -161,7 +184,22 @@ class SyncService:
                 "zmienione_jednostki": sum(o.changed_units for o in report.outcomes),
                 "nowe_nowelizacje": sum(o.new_amendments for o in report.outcomes),
             }
-            if status == SyncStatus.SUKCES:
+            if violation is not None:
+                alarm = SourceAlarm(
+                    source=SOURCE,
+                    kind="kontrakt",
+                    title="Odpowiedź ELI niezgodna z kontraktem — synchronizacja wstrzymana",
+                    details={
+                        "adres": violation.url,
+                        "naruszenia": [{"kod": v.code, "opis": v.message} for v in violation.violations],
+                    },
+                    run_id=finished.id,
+                )
+                s.add(alarm)
+                s.flush()
+                report.alarm = alarm.title
+                record(s, actor=ACTOR, entity="source_alarm", entity_id=alarm.id, action="podniesiono")
+            elif status == SyncStatus.SUKCES:
                 cp = s.get(SyncCheckpoint, SOURCE)
                 if cp is None:
                     s.add(SyncCheckpoint(source=SOURCE, last_success_at=started_at, run_id=finished.id))
@@ -182,6 +220,24 @@ class SyncService:
             )
             s.commit()
         return report
+
+    def _paused(self, trigger: str) -> SyncReport | None:
+        """Otwarty alarm źródła wstrzymuje przebieg: zapisujemy próbę, ale niczego nie pobieramy."""
+        with self.session_factory() as s:
+            alarm = open_alarm(s)
+            if alarm is None:
+                return None
+            run = SyncRun(
+                trigger=trigger,
+                status=SyncStatus.WSTRZYMANY,
+                finished_at=now(),
+                errors=[{"etap": "alarm", "blad": alarm.title}],
+            )
+            s.add(run)
+            s.commit()
+            return SyncReport(
+                run_id=run.id, status=SyncStatus.WSTRZYMANY, errors=list(run.errors), alarm=alarm.title
+            )
 
     def _changed_since(self, since: Any) -> set[str]:
         fetched = self._fetch(
@@ -214,6 +270,9 @@ class SyncService:
                 )
                 s.commit()
                 outcome.ok = True
+            except ContractViolationError:
+                s.rollback()
+                raise
             except SyncActError as exc:
                 s.rollback()
                 outcome.error = str(exc)
@@ -281,6 +340,13 @@ class SyncService:
 
     def _metadata(self, eli: str, *, kind: str, act_id: int) -> tuple[Fetched, ActMetadata]:
         fetched = self._fetch(act_path(eli), kind=kind, act_id=act_id)
+        violations = check_metadata(fetched.content, consolidated_text=kind == "metadata_tj")
+        if violations:
+            if self.enforce_contract:
+                raise ContractViolationError(self.client.url(act_path(eli)), violations)
+            self.contract_violations.extend(
+                {"eli": eli, "kod": v.code, "opis": v.message} for v in violations
+            )
         try:
             meta = ActMetadata.model_validate_json(fetched.content)
         except ValidationError as exc:

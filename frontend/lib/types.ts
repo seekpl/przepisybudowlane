@@ -302,10 +302,19 @@ export interface Run {
   errors: Record<string, string>[];
 }
 
+export interface SourceAlarm {
+  id: number;
+  title: string;
+  raised_at: string;
+  details: { adres?: string; naruszenia?: { kod: string; opis: string }[] };
+}
+
 export interface DataStatus {
   generated_at: string;
   threshold_hours: number;
   last_success_at: string | null;
+  /** Otwarty alarm źródła: synchronizacja wstrzymana, wszystkie karty „Nie potwierdzono aktualności”. */
+  alarm: SourceAlarm | null;
   runs: Run[];
   acts: {
     slug: string;

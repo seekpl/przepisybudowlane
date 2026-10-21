@@ -74,6 +74,16 @@ Komunikaty stoją przed tekstem przepisu w obu trybach. Każdy ma tytuł i zdani
 6. Nowelizacje z okna roku przed stanem prawnym; późniejsze niż tekst → zadanie z terminem = dzień wejścia w życie.
 7. Checkpoint przesuwa się tylko po w pełni udanym przebiegu; błędy → zadanie „awaria synchronizacji”.
 
+Każda odpowiedź metadanych przechodzi przez **kontrakt** (`eli/contract.py`): schemat, zamknięty słownik
+kluczy powiązań, `legalStatusDate` w tekście jednolitym. Naruszenie nie jest zwykłym błędem jednego aktu —
+podnosi **alarm źródła** (`source_alarm`): przebieg kończy się statusem „wstrzymany”, kolejne przebiegi
+niczego nie pobierają, a wszystkie karty pokazują „Nie potwierdzono aktualności” z powodem „synchronizacja
+wstrzymana”. Wznawia człowiek, zamykając alarm w panelu redakcji (z opisem, co sprawdził).
+
+Ten sam kod synchronizacji codziennie nagrywa odpowiedzi prawdziwego ELI w GitHub Actions
+(workflow `eli-nagrania`, `cli eli-record`); testy kontraktu działają na tych nagraniach, a `cli sync --replay`
+odtwarza je bez sieci.
+
 Idempotencja: migawki unikalne po (URL, SHA-256), wersje tekstu po (akt, migawka), zadania po kluczu deduplikacji.
 
 ## Frontend

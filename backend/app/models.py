@@ -78,6 +78,8 @@ class SyncStatus(StrEnum):
     SUKCES = "sukces"
     CZESCIOWY = "czesciowy"
     BLAD = "blad"
+    # Alarm kontraktu źródła: przebieg nie pobiera niczego, dopóki człowiek nie zamknie alarmu.
+    WSTRZYMANY = "wstrzymany"
 
 
 def _ts() -> Mapped[datetime]:
@@ -515,6 +517,24 @@ class SyncCheckpoint(Base):
     source: Mapped[str] = mapped_column(String(40), primary_key=True)
     last_success_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     run_id: Mapped[int] = mapped_column(ForeignKey("sync_run.id"))
+
+
+class SourceAlarm(Base):
+    """Alarm źródła (np. zmiana schematu ELI). Otwarty alarm wstrzymuje synchronizację tego źródła."""
+
+    __tablename__ = "source_alarm"
+    __table_args__ = (Index("ix_alarm_open", "source", "resolved_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source: Mapped[str] = mapped_column(String(40))
+    kind: Mapped[str] = mapped_column(String(40))
+    title: Mapped[str] = mapped_column(Text)
+    details: Mapped[dict[str, Any]] = mapped_column(Json, default=dict)
+    run_id: Mapped[int | None] = mapped_column(ForeignKey("sync_run.id"))
+    raised_at: Mapped[datetime] = _ts()
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_by: Mapped[str | None] = mapped_column(String(120))
+    resolution: Mapped[str | None] = mapped_column(Text)
 
 
 # --- Wyszukiwanie -------------------------------------------------------------------------

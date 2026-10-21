@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import {
   type EditorState,
+  editorCloseAlarm,
   editorCloseTask,
   editorDecideText,
   editorLogin,
@@ -133,6 +134,24 @@ export function TextDecisionForm({ id }: { id: number }) {
           <span>Odrzuć</span>
         </button>
       </div>
+      <Feedback state={res} />
+    </form>
+  );
+}
+
+export function CloseAlarmForm({ id }: { id: number }) {
+  const [res, action, pending] = useActionState<EditorState, FormData>(editorCloseAlarm, {});
+  return (
+    <form action={action} className="pb-stack-2">
+      <input type="hidden" name="id" value={id} />
+      <label className="ui-label" htmlFor={`a-${id}`}>
+        Co sprawdzono
+      </label>
+      <input id={`a-${id}`} name="resolution" className="pb-input ui-small" placeholder="np. poprawiono słownik powiązań w wydaniu 1.4" />
+      <button type="submit" className="pb-btn pb-btn-secondary pb-expert" disabled={pending}>
+        <Icon name="check" />
+        <span>Zamknij alarm i wznów synchronizację</span>
+      </button>
       <Feedback state={res} />
     </form>
   );

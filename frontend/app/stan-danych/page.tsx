@@ -2,12 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { StatusBadge, TextTypeBadge } from "@/components/ds/Badges";
+import { FreshnessNotice } from "@/components/ds/FreshnessNotice";
 import { api } from "@/lib/api";
 import { dateTime, typo } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Stan danych" };
 
-const RUN_STATUS: Record<string, string> = { sukces: "udana", czesciowy: "częściowa", blad: "nieudana", w_toku: "w toku" };
+const RUN_STATUS: Record<string, string> = {
+  sukces: "udana",
+  czesciowy: "częściowa",
+  blad: "nieudana",
+  w_toku: "w toku",
+  wstrzymany: "wstrzymana — alarm źródła",
+};
 const TASKS: Record<string, string> = {
   nowelizacja: "Nowelizacje do opisania",
   zmiana_tekstu: "Zmienione przepisy do sprawdzenia",
@@ -33,6 +40,22 @@ export default async function Page() {
         <h2 id="sync" className="ui-heading">
           Synchronizacja z ELI
         </h2>
+        {st.alarm ? (
+          <FreshnessNotice status="niepotwierdzona" title="Synchronizacja jest wstrzymana">
+            <p className="ui-body">
+              {typo(
+                `ELI API zwróciło dane w formacie, którego nie znamy (alarm z ${dateTime(st.alarm.raised_at)}). Do czasu sprawdzenia przez zespół nie potwierdzamy aktualności żadnego przepisu — porównaj tekst z Dziennikiem Ustaw.`,
+              )}
+            </p>
+            {st.alarm.details.naruszenia?.length ? (
+              <ul className="pb-plain-list ui-small">
+                {st.alarm.details.naruszenia.map((v, i) => (
+                  <li key={i}>{v.opis}</li>
+                ))}
+              </ul>
+            ) : null}
+          </FreshnessNotice>
+        ) : null}
         {st.last_success_at ? (
           <p className="ui-body">
             Ostatnia udana: <span className="meta">{dateTime(st.last_success_at)}</span>

@@ -29,6 +29,7 @@ from app.modules.freshness.engine import (
     Interval,
     evaluate,
 )
+from app.modules.ops.alarms import open_alarm
 
 
 @dataclass
@@ -136,6 +137,7 @@ def _input(
             for a in amendments(s, act.id)
         ],
         unit_missing_from=missing_from,
+        source_paused=_paused_title(s),
     )
 
 
@@ -149,3 +151,8 @@ def for_unit(s: Session, unit: LegalUnit, ut: UnitText | None = None) -> Freshne
 
 def for_act(s: Session, act: LegalAct) -> Freshness:
     return evaluate(_input(s, act, current_text(s, act.id), None, None))
+
+
+def _paused_title(s: Session) -> str | None:
+    alarm = open_alarm(s)
+    return alarm.title if alarm else None

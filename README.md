@@ -62,13 +62,19 @@ BACKEND_URL=http://localhost:8000 npm run dev
 ## Testy
 
 ```bash
-cd backend && uv run pytest            # 84 testy: stan prawny, parser, ELI, synchronizacja, redakcja, API
+cd backend && uv run pytest            # stan prawny, parser, ELI i kontrakt, synchronizacja, redakcja, API
 cd frontend && npm run lint && npm run typecheck && npm run build
 cd frontend && npx playwright test     # 26 testów E2E na działającej aplikacji, w tym axe (WCAG 2.1 AA)
 ```
 
 CI (`.github/workflows/ci.yml`) uruchamia lint, typy, zgodność migracji z modelem, testy backendu, build
 frontendu, sprawdza, czy `tokens.css` odpowiada `design/tokens.json`, i odpala testy E2E na złożonej aplikacji.
+
+Workflow `.github/workflows/eli-nagrania.yml` codziennie nagrywa odpowiedzi prawdziwego ELI API i sprawdza
+na nich kontrakt; gdy dane się zmieniły, a testy przechodzą, sam otwiera i scala PR, a gdy kontrakt pada —
+otwiera zgłoszenie z etykietą `alarm-eli` (wymaga zgody w ustawieniach repozytorium: *Actions → General →
+Allow GitHub Actions to create and approve pull requests*). Szczegóły:
+[`backend/tests/fixtures/eli/README.md`](backend/tests/fixtures/eli/README.md).
 
 ## Zasady, których pilnuje kod
 

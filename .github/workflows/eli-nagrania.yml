@@ -1,0 +1,166 @@
+# Nagrania odpowiedzi ELI API Kancelarii Sejmu i test kontraktu (arkusz automatyzacji, działania 1.1–1.3).
+#
+# Codziennie prawdziwa synchronizacja przechodzi przez transport zapisujący (`cli eli-record`) na świeżej bazie
+# z manifestem; nagranie trafia do backend/tests/fixtures/eli/recorded, a testy kontraktu sprawdzają je
+# w całości (schemat, zamknięty słownik powiązań, legalStatusDate, parser z progiem jakości).
+#
+# - Harmonogram / ręczne uruchomienie na gałęzi domyślnej: gdy nagranie się zmieniło, a testy przechodzą,
+#   bot otwiera i scala PR z nowymi danymi. Gdy testy padają — otwiera (albo uzupełnia) zgłoszenie
+#   „alarm-eli”; produkcja niezależnie wstrzymuje się sama (kontrakt w SyncService, alarm źródła).
+#   Wymaga w ustawieniach repozytorium: Actions → General → „Allow GitHub Actions to create and approve
+#   pull requests”.
+# - Push na gałąź roboczą: nagranie jest dopisywane commitem do tej samej gałęzi (także gdy testy padają —
+#   żeby dało się poprawić kod na prawdziwych danych), a wynik testów decyduje o kolorze przebiegu.
+
+name: Nagrania ELI
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+    paths:
+      - ".github/workflows/eli-nagrania.yml"
+      - "backend/app/modules/eli/**"
+      - "backend/app/modules/sync/**"
+      - "backend/app/modules/parser/**"
+      - "backend/app/cli.py"
+      - "backend/seed/manifest.yaml"
+      - "backend/tests/test_eli_contract.py"
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: eli-nagrania-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RECORDED: backend/tests/fixtures/eli/recorded
+
+jobs:
+  nagranie:
+    name: Nagranie ELI i test kontraktu
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: przepisy
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 3s --health-retries 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      PB_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/przepisy
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+          python-version: "3.13"
+      - run: uv sync --frozen
+
+      - name: Świeża baza z manifestem
+        run: |
+          uv run python -m app.cli migrate
+          uv run python -m app.cli seed --manifest-only
+
+      - name: Nagranie odpowiedzi ELI
+        id: record
+        run: uv run python -m app.cli eli-record --out tests/fixtures/eli/recorded
+
+      - name: Testy (w tym kontrakt na nagraniach)
+        id: tests
+        continue-on-error: true
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "create database przepisy_test"
+          PB_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/przepisy_test \
+            uv run pytest -rs -o console_output_style=classic tests/test_eli_contract.py -v -s
+          PB_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/przepisy_test uv run pytest -q
+
+      - name: Podsumowanie
+        if: always()
+        working-directory: .
+        run: |
+          {
+            echo "## Nagranie ELI"
+            echo
+            echo "Testy: **${{ steps.tests.outcome }}**"
+            echo
+            echo '```json'
+            cat "$RECORDED/kontrakt.json" 2>/dev/null || echo '{"status": "brak nagrania"}'
+            echo '```'
+            echo
+            git status --short -- "$RECORDED" | head -50
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Czy nagranie się zmieniło
+        id: diff
+        working-directory: .
+        run: |
+          git add -A -- "$RECORDED"
+          if git diff --cached --quiet; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Gałąź robocza — dopisz nagranie do gałęzi
+        if: github.event_name == 'push' && steps.diff.outputs.changed == 'true'
+        working-directory: .
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Nagrania ELI z $(date -u +%Y-%m-%d) (testy: ${{ steps.tests.outcome }})"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
+      - name: Harmonogram — PR z nowymi danymi i scalenie
+        if: >-
+          github.event_name != 'push' && steps.tests.outcome == 'success' && steps.diff.outputs.changed == 'true'
+        working-directory: .
+        run: |
+          branch="bot/eli-nagrania-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git commit -m "Nagrania ELI z $(date -u +%Y-%m-%d)"
+          git push origin "$branch"
+          body="Nowe odpowiedzi ELI API. Test kontraktu i pełne testy backendu przeszły w przebiegu ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+          gh pr create --base "$GITHUB_REF_NAME" --head "$branch" --title "Nagrania ELI z $(date -u +%Y-%m-%d)" --body "$body"
+          gh pr merge "$branch" --squash --delete-branch
+
+      - name: Harmonogram — alarm, gdy kontrakt nie przechodzi
+        if: github.event_name != 'push' && (failure() || steps.tests.outcome == 'failure')
+        working-directory: .
+        run: |
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh label create alarm-eli --color B60205 --description "ELI zmieniło format albo jest niedostępne" --force
+          open=$(gh issue list --label alarm-eli --state open --json number --jq '.[0].number')
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "Kolejny nieudany przebieg: $run_url"
+          else
+            gh issue create --label alarm-eli \
+              --title "Alarm: odpowiedzi ELI niezgodne z kontraktem albo nagranie nieudane" \
+              --body "Przebieg $run_url nie przeszedł. Produkcyjna synchronizacja wstrzymuje się sama przy naruszeniu kontraktu (panel redakcji → Alarmy źródła). Sprawdź podsumowanie przebiegu i kontrakt.json, popraw schemat albo słownik powiązań, a potem zamknij alarm w panelu redakcji."
+          fi
+
+      - name: Wynik testów decyduje o przebiegu
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
+
+      - name: Nagranie jako artefakt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eli-nagranie
+          path: ${{ env.RECORDED }}
+          retention-days: 14
+          if-no-files-found: ignore

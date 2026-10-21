@@ -1,15 +1,31 @@
 # Odpowiedzi ELI do testów
 
-Pliki w tym katalogu są **syntetyczne**: mają kształt odpowiedzi ELI API Kancelarii Sejmu
-(`/eli/acts/{wydawca}/{rok}/{pozycja}` i `/text.html`) opisany w dokumentacji, ale nie zostały
-pobrane z produkcyjnego API — środowisko, w którym powstał prototyp, nie miało do niego dostępu.
+## `DU_*.json`, `DU_*.html` — dane syntetyczne
 
-Służą do testów zachowania synchronizacji (idempotencja, wykrywanie zmian, awarie). Zanim
-synchronizacja trafi na produkcję, trzeba:
+Mają kształt odpowiedzi ELI API Kancelarii Sejmu (`/eli/acts/{wydawca}/{rok}/{pozycja}` i `/text.html`)
+opisany w dokumentacji, ale nie pochodzą z produkcyjnego API. Służą do testów zachowania synchronizacji
+(idempotencja, wykrywanie zmian, awarie, alarm kontraktu). Teksty przepisów w plikach HTML są danymi
+testowymi, nie źródłem prawa.
 
-1. nagrać prawdziwe odpowiedzi dla dwóch aktów testowych wskazanych przez prawnika:
-   `uv run python -m app.cli eli-record DU/1994/414 DU/2026/524 --out tests/fixtures/eli/recorded`,
-2. dodać test kontraktu na nagraniach (nazwy pól, klucze `references`, format HTML),
-3. poprawić `app/modules/eli/schemas.py` (`REFERENCE_ROLES`) i parser, jeśli kontrakt się różni.
+## `recorded/` — nagrania z prawdziwego ELI
 
-Teksty przepisów w plikach HTML są danymi testowymi, nie źródłem prawa.
+Zapisuje je workflow [`eli-nagrania`](../../../../.github/workflows/eli-nagrania.yml): świeża baza
+z manifestem, potem prawdziwa synchronizacja przez transport zapisujący (`cli eli-record`). Układ:
+ścieżka zasobu względem `…/eli/` (`acts/DU/1994/414.json`, `acts/DU/2026/524/text.html`), `index.json`
+z adresem, statusem, SHA-256 i datą nagrania każdej odpowiedzi, `kontrakt.json` z wynikiem przebiegu
+i naruszeniami kontraktu oraz `openapi.*`, jeśli ELI udostępnia specyfikację.
+
+Na nagraniach działają testy z `tests/test_eli_contract.py` (schemat, zamknięty słownik powiązań,
+`legalStatusDate` tekstu jednolitego, parser z progiem jakości, pełna synchronizacja w odtworzeniu).
+Lokalnie można odtworzyć synchronizację bez sieci:
+
+```bash
+uv run python -m app.cli sync --replay tests/fixtures/eli/recorded
+```
+
+Nagrywanie z własnego komputera (wymaga dostępu do `api.sejm.gov.pl` i bazy bez historii synchronizacji):
+
+```bash
+uv run python -m app.cli migrate && uv run python -m app.cli seed --manifest-only
+uv run python -m app.cli eli-record
+```

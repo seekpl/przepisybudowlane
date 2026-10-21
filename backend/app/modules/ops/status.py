@@ -10,6 +10,7 @@ from app.clock import now
 from app.config import Settings
 from app.models import EditorialTask, LegalAct, SourceFetch, SyncCheckpoint, SyncRun
 from app.modules.freshness import service as fresh
+from app.modules.ops.alarms import open_alarm
 
 
 def status(s: Session, settings: Settings) -> o.StatusOut:
@@ -40,10 +41,16 @@ def status(s: Session, settings: Settings) -> o.StatusOut:
     errors = s.scalars(
         select(SourceFetch).where(SourceFetch.ok.is_(False)).order_by(SourceFetch.id.desc()).limit(10)
     ).all()
+    alarm = open_alarm(s)
     return o.StatusOut(
         generated_at=now(),
         threshold_hours=settings.freshness_threshold_hours,
         last_success_at=checkpoint.last_success_at if checkpoint else None,
+        alarm=o.AlarmOut(
+            id=alarm.id, title=alarm.title, raised_at=alarm.raised_at, details=alarm.details or {}
+        )
+        if alarm
+        else None,
         runs=[
             o.RunOut(
                 id=r.id,

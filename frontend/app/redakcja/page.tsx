@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { editorLogout } from "@/app/actions";
-import { CloseTaskForm, LoginForm, TextDecisionForm, TransitionForm } from "@/components/editorial/Forms";
+import { CloseAlarmForm, CloseTaskForm, LoginForm, TextDecisionForm, TransitionForm } from "@/components/editorial/Forms";
 import { Icon } from "@/components/ds/Icon";
 import { editorialFetch } from "@/lib/api";
 import { editorToken } from "@/lib/editor";
@@ -37,6 +37,17 @@ interface TextReview {
   publikator: string;
   jakosc: number | null;
   uwagi: string | null;
+}
+interface Alarm {
+  id: number;
+  source: string;
+  kind: string;
+  title: string;
+  details: { adres?: string; naruszenia?: { kod: string; opis: string }[] };
+  raised_at: string;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  resolution: string | null;
 }
 interface Report {
   number: string;
@@ -78,12 +89,14 @@ export default async function Page() {
       </div>
     );
   }
-  const [tasks, contents, texts, reports] = await Promise.all([
+  const [tasks, contents, texts, reports, alarms] = await Promise.all([
     editorialFetch<Task[]>(token, "/zadania"),
     editorialFetch<Content[]>(token, "/tresci"),
     editorialFetch<TextReview[]>(token, "/teksty"),
     editorialFetch<Report[]>(token, "/zgloszenia"),
+    editorialFetch<Alarm[]>(token, "/alarmy"),
   ]);
+  const openAlarms = alarms.filter((a) => a.resolved_at === null);
   const waiting = contents.filter((c) => c.state !== "opublikowany" && c.state !== "cofniety");
   const published = contents.filter((c) => c.state === "opublikowany");
   return (
@@ -102,6 +115,38 @@ export default async function Page() {
           </form>
         </div>
       </div>
+
+      {openAlarms.length > 0 ? (
+        <section aria-labelledby="alarmy" className="pb-stack-4">
+          <h2 id="alarmy" className="ui-heading">
+            Alarmy źródła ({openAlarms.length})
+          </h2>
+          <p className="ui-small pb-muted">
+            Synchronizacja jest wstrzymana, a wszystkie karty pokazują „Nie potwierdzono aktualności”. Zamknij alarm dopiero po
+            sprawdzeniu zmiany w ELI i poprawieniu kontraktu.
+          </p>
+          <ul className="pb-list">
+            {openAlarms.map((a) => (
+              <li key={a.id} className="pb-list-item pb-stack-2">
+                <p className="ui-body">
+                  <strong>{a.title}</strong> <span className="meta-small">{dateTime(a.raised_at)}</span>
+                </p>
+                {a.details.adres ? <p className="meta-small">{a.details.adres}</p> : null}
+                {a.details.naruszenia?.length ? (
+                  <ul className="pb-plain-list ui-small">
+                    {a.details.naruszenia.map((v, i) => (
+                      <li key={i}>
+                        <span className="meta-small">{v.kod}</span> — {v.opis}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <CloseAlarmForm id={a.id} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section aria-labelledby="zadania" className="pb-stack-4">
         <h2 id="zadania" className="ui-heading">

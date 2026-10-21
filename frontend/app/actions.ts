@@ -118,3 +118,19 @@ export async function editorDecideText(_prev: EditorState, formData: FormData): 
   revalidatePath("/redakcja");
   return { ok: "Decyzja zapisana." };
 }
+
+export async function editorCloseAlarm(_prev: EditorState, formData: FormData): Promise<EditorState> {
+  const id = String(formData.get("id"));
+  const resolution = String(formData.get("resolution") ?? "").trim();
+  if (resolution.length < 3) return { error: "Opisz, co sprawdzono i dlaczego można wznowić synchronizację." };
+  try {
+    await editorialFetch(await token(), `/alarmy/${encodeURIComponent(id)}/zamknij`, {
+      method: "POST",
+      body: JSON.stringify({ resolution }),
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nie udało się zamknąć alarmu." };
+  }
+  revalidatePath("/redakcja");
+  return { ok: "Alarm zamknięty — następny przebieg synchronizacji ruszy normalnie." };
+}

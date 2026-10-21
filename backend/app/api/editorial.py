@@ -25,10 +25,12 @@ from app.models import (
     LegalAct,
     LegalTextVersion,
     LegalUnit,
+    SourceAlarm,
     TextReview,
 )
 from app.modules.editorial.workflow import ENTITY_MODELS, WorkflowError, entity_name, transition
 from app.modules.freshness.service import unit_text
+from app.modules.ops.alarms import resolve_alarm
 from app.modules.reports.service import close_report
 from app.modules.search.service import rebuild_index
 
@@ -401,3 +403,55 @@ def reports(s: Session = Depends(get_session), _: Editor = Depends(current_edito
         )
         for r in rows
     ]
+
+
+class AlarmAdminOut(BaseModel):
+    id: int
+    source: str
+    kind: str
+    title: str
+    details: dict[str, Any]
+    raised_at: datetime
+    resolved_at: datetime | None
+    resolved_by: str | None
+    resolution: str | None
+
+
+def _alarm_out(a: SourceAlarm) -> AlarmAdminOut:
+    return AlarmAdminOut(
+        id=a.id,
+        source=a.source,
+        kind=a.kind,
+        title=a.title,
+        details=a.details or {},
+        raised_at=a.raised_at,
+        resolved_at=a.resolved_at,
+        resolved_by=a.resolved_by,
+        resolution=a.resolution,
+    )
+
+
+@router.get(
+    "/alarmy", response_model=list[AlarmAdminOut], summary="Alarmy źródeł (otwarte i ostatnie zamknięte)"
+)
+def alarms(s: Session = Depends(get_session), _: Editor = Depends(current_editor)) -> list[AlarmAdminOut]:
+    rows = s.scalars(
+        select(SourceAlarm).order_by(SourceAlarm.resolved_at.nulls_first(), SourceAlarm.id.desc()).limit(50)
+    )
+    return [_alarm_out(a) for a in rows]
+
+
+@router.post(
+    "/alarmy/{alarm_id}/zamknij",
+    response_model=AlarmAdminOut,
+    summary="Reakcja na alarm — wznawia synchronizację",
+)
+def close_alarm(
+    alarm_id: int, body: CloseIn, s: Session = Depends(get_session), editor: Editor = Depends(current_editor)
+) -> AlarmAdminOut:
+    alarm = s.get(SourceAlarm, alarm_id)
+    if alarm is None or alarm.resolved_at is not None:
+        raise HTTPException(409, "Ten alarm nie jest otwarty.")
+    resolve_alarm(s, alarm, actor=editor.name, resolution=body.resolution)
+    s.commit()
+    return _alarm_out(alarm)

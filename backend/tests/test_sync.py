@@ -196,20 +196,23 @@ def test_eli_outage_keeps_old_data_does_not_move_checkpoint_and_ages_into_warnin
     assert "dane_nieswieze" in [r.code for r in f.reasons]
 
 
-def test_invalid_metadata_is_a_visible_validation_error(
+def test_invalid_metadata_pauses_sync_as_contract_violation(
     seeded: Session, make_sync, fake_eli: FakeEli
 ) -> None:  # type: ignore[no-untyped-def]
     only_act(seeded, "prawo-budowlane")
     fake_eli.set_json("/eli/acts/DU/1994/414", {"ELI": "DU/1994/414", "publisher": "DU"})
     report = make_sync().run()
-    assert report.status == "blad"
-    assert "walidacji" in report.errors[0]["blad"]
+    assert report.status == "wstrzymany"
+    assert report.alarm
+    assert "schematem" in report.errors[0]["blad"]
 
 
-def test_broken_json_is_a_visible_error(seeded: Session, make_sync, fake_eli: FakeEli) -> None:  # type: ignore[no-untyped-def]
+def test_broken_json_pauses_sync(seeded: Session, make_sync, fake_eli: FakeEli) -> None:  # type: ignore[no-untyped-def]
     only_act(seeded, "prawo-budowlane")
     fake_eli.routes["/eli/acts/DU/1994/414"] = (200, b"{not json", "application/json")
-    assert make_sync().run().status == "blad"
+    report = make_sync().run()
+    assert report.status == "wstrzymany"
+    assert report.contract_violations == []
 
 
 def test_pdf_only_text_goes_to_human_review_not_publication(

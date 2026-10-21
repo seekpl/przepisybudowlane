@@ -350,10 +350,18 @@ class ActStatusOut(BaseModel):
     journal: str | None
 
 
+class AlarmOut(BaseModel):
+    id: int
+    title: str
+    raised_at: dt.datetime
+    details: dict[str, Any]
+
+
 class StatusOut(BaseModel):
     generated_at: dt.datetime
     threshold_hours: int
     last_success_at: dt.datetime | None
+    alarm: AlarmOut | None
     runs: list[RunOut]
     acts: list[ActStatusOut]
     open_tasks: dict[str, int]

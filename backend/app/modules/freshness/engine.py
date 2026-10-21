@@ -74,6 +74,7 @@ class FreshnessInput:
     intervals: list[Interval] = field(default_factory=list)
     amendments: list[Amendment] = field(default_factory=list)
     unit_missing_from: str | None = None  # publikator najnowszego tekstu, w którym jednostki już nie ma
+    source_paused: str | None = None  # tytuł otwartego alarmu źródła (synchronizacja wstrzymana)
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,18 @@ CHECK_OFFICIAL = "Zanim się na nim oprzesz, porównaj go z oficjalnym tekstem �
 def evaluate(inp: FreshnessInput) -> Freshness:
     reasons: list[Reason] = []
     day = inp.today
+
+    # 0. Alarm źródła — pierwszy, bo wyjaśnia pozostałe komunikaty (sortowanie powodów jest stabilne).
+    if inp.source_paused:
+        reasons.append(
+            Reason(
+                "niepotwierdzona",
+                "synchronizacja_wstrzymana",
+                "Synchronizacja z oficjalnym źródłem jest wstrzymana",
+                "Źródło zmieniło format danych i do czasu sprawdzenia przez zespół nie potwierdzamy "
+                "aktualności żadnego przepisu. " + CHECK_OFFICIAL,
+            )
+        )
 
     # 1. Podstawa potwierdzenia i wiek danych.
     confirmation: Confirmation | None = None
