@@ -34,13 +34,6 @@
   "sha256": "4e14fca9ff91b0f91723ba220522f593c16705b8e3fbb3695115e7a2cd5f3ea1",
   "recorded_at": "2026-10-21T11:37:19+00:00"
  },
- "acts/DU/2019/1696/text.html": {
-  "url": "https://api.sejm.gov.pl/eli/acts/DU/2019/1696/text.html",
-  "status": 200,
-  "content_type": "text/html;charset=utf-8",
-  "sha256": "d713f7630c3eafd647a2ef63e3b474af2b9d77ea3d05fa967c8b7b0b5197f246",
-  "recorded_at": "2026-10-21T11:37:19+00:00"
- },
  "acts/DU/2022/1225.json": {
   "url": "https://api.sejm.gov.pl/eli/acts/DU/2022/1225",
   "status": 200,
@@ -61,6 +54,20 @@
   "content_type": "application/json",
   "sha256": "44b0f02e55769cf71e3eefb7bc45715d6503a0e6d574c0591f26ec413090b0bc",
   "recorded_at": "2026-10-21T10:46:51+00:00"
+ },
+ "acts/DU/2024/1411.json": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2024/1411",
+  "status": 200,
+  "content_type": "application/json",
+  "sha256": "ae5f561a468b78e1718d579343c92fc35d92f72780bddf9e161a4430e600bc2f",
+  "recorded_at": "2026-10-21T11:46:44+00:00"
+ },
+ "acts/DU/2024/1411/text.html": {
+  "url": "https://api.sejm.gov.pl/eli/acts/DU/2024/1411/text.html",
+  "status": 200,
+  "content_type": "text/html;charset=utf-8",
+  "sha256": "bcf6c667bd0aa44759efb5b20649074111e49c7751c409105755dc1dbc99d119",
+  "recorded_at": "2026-10-21T11:46:44+00:00"
  },
  "acts/DU/2025/1080.json": {
   "url": "https://api.sejm.gov.pl/eli/acts/DU/2025/1080",
