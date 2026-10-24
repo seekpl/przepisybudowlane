@@ -83,7 +83,8 @@ def test_reviewer_records_transitional_application_and_card_shows_it(
 
 
 def test_real_repealing_act_points_to_its_transitional_provision() -> None:
-    """Nagranie z 21.10.2026: WT uchylone na podstawie Dz.U. 2019 poz. 1696 — automat wskazuje art. 66."""
+    """Nagranie: WT uchylone na podstawie Dz.U. 2019 poz. 1696 — automat czyta jej t.j. (Dz.U. 2024 poz. 1411)
+    i wskazuje art. 66 w aktualnym brzmieniu (84 miesiące; w tekście pierwotnym było 36)."""
     import json
     from pathlib import Path
 
@@ -92,13 +93,13 @@ def test_real_repealing_act_points_to_its_transitional_provision() -> None:
     from app.modules.parser.units import parse_units
 
     rec = Path(__file__).parent / "fixtures" / "eli" / "recorded" / "acts" / "DU"
-    html = rec / "2019" / "1696" / "text.html"
+    html = rec / "2024" / "1411" / "text.html"
     if not html.exists():
-        pytest.skip("brak nagrania aktu uchylającego")
+        pytest.skip("brak nagrania tekstu jednolitego aktu uchylającego")
     wt = json.loads((rec / "2002" / "690.json").read_text(encoding="utf-8"))
     basis = [r["art"] for r in wt["references"]["Podstawa prawna z art."] if r.get("art")]
     found = find_transitional(
         parse_units(html.read_text(encoding="utf-8")).units, basis=basis, repealed_title=wt["title"]
     )
-    art66 = next(c for c in found if c["klucz"] == "art_66")
-    assert "art. 7 ust. 2 i 3" in art66["tekst"] and "zachowują moc" in art66["tekst"]
+    assert [c["klucz"] for c in found] == ["art_66"]
+    assert "zachowują moc" in found[0]["tekst"] and "84 miesiące" in found[0]["tekst"]
