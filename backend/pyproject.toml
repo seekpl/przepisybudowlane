@@ -17,6 +17,7 @@ dependencies = [
   "beautifulsoup4>=4.12",
   "pdfplumber>=0.11",
   "morfeusz2>=1.99",
+  "anthropic>=1",
 ]
 
 [dependency-groups]

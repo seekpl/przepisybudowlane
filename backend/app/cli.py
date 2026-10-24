@@ -7,6 +7,8 @@ sync               jeden przebieg synchronizacji z ELI; --replay KATALOG: z nagr
 worker             synchronizacja co PB_SYNC_INTERVAL_MINUTES z ponawianiem; sprząta e-maile po retencji
 reindex            przebudowa indeksu wyszukiwarki
 search-eval        trafność wyszukiwarki: zestaw z treści, trzy warianty, porównanie z trafnosc.json
+szkice-ai          szkice objaśnień AI z otwartych zadań „szkic AI” (wymaga ANTHROPIC_API_KEY); szkice
+                   trafiają do recenzji, nigdy do publikacji
 eli-record         nagranie odpowiedzi ELI dla aktów z manifestu do testów kontraktu (wymaga dostępu do
                    api.sejm.gov.pl i świeżej bazy z manifestem; w CI: workflow eli-nagrania)
 """
@@ -106,6 +108,8 @@ def _worker() -> None:
             status = _sync("harmonogram")
             if settings.seed_after_sync and status in ("sukces", "czesciowy"):
                 _seed()
+            if settings.ai_drafts:
+                _ai_drafts()
             with get_sessionmaker()() as s:
                 purged = purge_expired_emails(s)
                 s.commit()
@@ -114,6 +118,20 @@ def _worker() -> None:
         except Exception:
             log.exception("Przebieg synchronizacji zakończył się wyjątkiem")
         time.sleep(settings.sync_interval_minutes * 60)
+
+
+def _ai_drafts() -> int:
+    import anthropic
+
+    from app.modules.drafting.service import process_open
+
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        log.error("Szkice AI wymagają klucza w zmiennej ANTHROPIC_API_KEY")
+        return 1
+    with get_sessionmaker()() as s:
+        made = process_open(s, anthropic.Anthropic(), get_settings())
+    log.info("Szkice AI w kolejce recenzji: %s", len(made))
+    return 0
 
 
 def _reindex() -> None:
@@ -245,6 +263,7 @@ def main(argv: list[str] | None = None) -> int:
     ev = sub.add_parser("search-eval")
     ev.add_argument("--zapisz", action="store_true", help="zapisz wynik jako nowy pomiar odniesienia")
     ev.add_argument("--przypadki", type=Path, help="zapisz zestaw testowy do pliku JSON")
+    sub.add_parser("szkice-ai")
     rec = sub.add_parser("eli-record")
     rec.add_argument("--out", type=Path, default=RECORDED_DIR)
     args = parser.parse_args(argv)
@@ -260,6 +279,8 @@ def main(argv: list[str] | None = None) -> int:
         _worker()
     elif args.cmd == "reindex":
         _reindex()
+    elif args.cmd == "szkice-ai":
+        return _ai_drafts()
     elif args.cmd == "eli-record":
         return _record(args.out)
     return 0

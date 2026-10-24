@@ -121,6 +121,8 @@ jobs:
     env:
       PB_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/przepisy
       BACKEND_URL: http://localhost:8000
+      # Tokeny redakcji tylko dla tej efemerycznej bazy testowej (panel redakcji w E2E).
+      PB_EDITOR_TOKENS: "jan=recenzent:tok-jan;anna=redaktor:tok-anna"
       CI: "true"
     steps:
       - uses: actions/checkout@v4

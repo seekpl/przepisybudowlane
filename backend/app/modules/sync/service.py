@@ -52,6 +52,7 @@ from app.models import (
 )
 from app.modules.archive.storage import Archive
 from app.modules.content.wizard_rules import propose as propose_rules
+from app.modules.drafting.service import request_draft
 from app.modules.editorial import tasks
 from app.modules.editorial.flags import flag_content
 from app.modules.editorial.workflow import system_suspend
@@ -696,7 +697,9 @@ def diff_units(s: Session, act: LegalAct, old: LegalTextVersion, new: LegalTextV
         removed = unit_id not in after
         what = "zniknęła z nowego tekstu" if removed else "ma nowe brzmienie"
         reason = f"{act.short_title}, {unit.label} {what} ({new.journal_display}). Treść czeka na ponowne sprawdzenie."
-        suspend_dependent(s, unit, reason)
+        if suspend_dependent(s, unit, reason) and not removed:
+            # Zawieszone objaśnienie: AI przygotowuje szkic do nowego brzmienia (3.5), publikuje człowiek.
+            request_draft(s, unit, reason=reason, requested_by=ACTOR)
         tasks.ensure_task(
             s,
             kind=TaskKind.ZMIANA_TEKSTU,
@@ -709,11 +712,12 @@ def diff_units(s: Session, act: LegalAct, old: LegalTextVersion, new: LegalTextV
     return len(changed_ids)
 
 
-def suspend_dependent(s: Session, unit: LegalUnit, reason: str) -> None:
+def suspend_dependent(s: Session, unit: LegalUnit, reason: str) -> int:
     """Zawiesza opublikowane objaśnienia i węzły kreatora oparte na zmienionej jednostce.
 
     Jednostka nadrzędna zmienia się razem z każdą podrzędną (jej treść je zawiera), więc
     wystarczy dokładne dopasowanie — objaśnienie pkt 1a nie jest zawieszane przez zmianę pkt 2.
+    Zwraca liczbę zawieszonych wersji objaśnień.
     """
     published = s.scalars(
         select(ExplanationVersion)
@@ -733,3 +737,4 @@ def suspend_dependent(s: Session, unit: LegalUnit, reason: str) -> None:
             flag_content(
                 s, entity="decision_tree_node_version", entity_id=node.id, reason=reason, actor=ACTOR
             )
+    return len(published)

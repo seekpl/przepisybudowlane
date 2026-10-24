@@ -30,6 +30,7 @@ function ExplanationBlock({ p, mode }: { p: Provision; mode: Mode }) {
       ) : null}
       <span>
         Wersja {e.version_no}
+        {e.ai_assisted ? ", szkic przygotowało AI z tekstu urzędowego" : ""}
         {e.verified_on ? `, zweryfikowano ${shortDate(e.verified_on)}` : ""}
         {e.reviewer ? ` (${e.reviewer})` : ""}. Informacja, nie porada prawna.
       </span>

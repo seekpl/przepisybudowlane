@@ -76,6 +76,8 @@ class ExplanationOut(BaseModel):
     title: str | None
     paragraphs: list[str]
     is_demo: bool
+    # Szkic napisało AI z tekstu z ELI, a sprawdził i opublikował imiennie recenzent (3.6).
+    ai_assisted: bool = False
     author: str
     reviewer: str | None
     verified_on: dt.date | None

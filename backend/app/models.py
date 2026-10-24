@@ -73,6 +73,7 @@ class TaskKind(StrEnum):
     AWARIA_SYNCHRONIZACJI = "awaria_synchronizacji"
     ZGLOSZENIE_BLEDU = "zgloszenie_bledu"
     PRZEPISY_PRZEJSCIOWE = "przepisy_przejsciowe"
+    SZKIC_AI = "szkic_ai"
 
 
 class SyncStatus(StrEnum):
@@ -328,6 +329,10 @@ class ExplanationVersion(EditorialVersionMixin, Base):
     title: Mapped[str | None] = mapped_column(String(200))
     body: Mapped[str] = mapped_column(Text)
     based_on_unit_version_id: Mapped[int | None] = mapped_column(ForeignKey("legal_unit_version.id"))
+    # Szkic AI (3.3): model, zdania z cytatami i raport walidatorów. Puste dla tekstu pisanego przez redaktora.
+    ai_model: Mapped[str | None] = mapped_column(String(80))
+    ai_sentences: Mapped[list[list[dict[str, Any]]] | None] = mapped_column(Json)
+    ai_report: Mapped[dict[str, Any] | None] = mapped_column(Json)
 
     explanation: Mapped[Explanation] = relationship(back_populates="versions")
 

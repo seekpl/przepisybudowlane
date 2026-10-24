@@ -131,3 +131,23 @@ body { margin: 0; background: var(--surface); color: var(--ink); font-family: va
   align-items: flex-start;
   margin-top: var(--space-2);
 }
+
+/* Kolejka szkiców AI: różnice brzmienia i objaśnienia (arkusz, 3.6). */
+.pb-diff ins {
+  background: var(--status-ok-bg);
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--status-ok-line);
+}
+.pb-diff del {
+  background: var(--status-critical-bg);
+  color: var(--ink-muted);
+}
+.pb-diff-sentence + .pb-diff-sentence {
+  margin-top: var(--space-2);
+}
+.pb-diff-quotes {
+  margin-top: var(--space-1);
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--line);
+}

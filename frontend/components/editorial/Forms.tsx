@@ -6,14 +6,19 @@ import {
   type EditorState,
   editorCloseAlarm,
   editorCloseTask,
+  editorDecideAiDraft,
   editorDecideText,
   editorLogin,
   editorTransition,
   editorTransitional,
   editorAddSynonym,
+  editorRequestAiDraft,
 } from "@/app/actions";
 import { Icon } from "@/components/ds/Icon";
 
+// Ukryte pola nie mogą się nazywać „id” ani jak inne właściwości formularza: input name="id" przesłania
+// form.id, a React dołącza wartość klikniętego przycisku (decision) przez atrybut form={form.id} — przycisk
+// „Zatwierdź” wysyłał wtedy formularz bez decyzji, czyli jak „Odrzuć”.
 function Feedback({ state }: { state: EditorState }) {
   if (state.error)
     return (
@@ -79,7 +84,7 @@ export function TransitionForm({ entity, id, state }: { entity: string; id: numb
   return (
     <form action={action} className="pb-stack-2">
       <input type="hidden" name="entity" value={entity} />
-      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="item_id" value={id} />
       <label className="pb-sr" htmlFor={`c-${entity}-${id}`}>
         Komentarz
       </label>
@@ -105,7 +110,7 @@ export function CloseTaskForm({ id }: { id: number }) {
   const [res, action, pending] = useActionState<EditorState, FormData>(editorCloseTask, {});
   return (
     <form action={action} className="pb-stack-2">
-      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="item_id" value={id} />
       <label className="pb-sr" htmlFor={`r-${id}`}>
         Rozwiązanie
       </label>
@@ -123,7 +128,7 @@ export function TextDecisionForm({ id }: { id: number }) {
   const [res, action, pending] = useActionState<EditorState, FormData>(editorDecideText, {});
   return (
     <form action={action} className="pb-stack-2">
-      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="item_id" value={id} />
       <label className="pb-sr" htmlFor={`t-${id}`}>
         Uzasadnienie
       </label>
@@ -141,11 +146,50 @@ export function TextDecisionForm({ id }: { id: number }) {
   );
 }
 
+export function AiDraftDecisionForm({ id }: { id: number }) {
+  const [res, action, pending] = useActionState<EditorState, FormData>(editorDecideAiDraft, {});
+  return (
+    <form action={action} className="pb-stack-2">
+      <input type="hidden" name="item_id" value={id} />
+      <label className="ui-label" htmlFor={`ai-${id}`}>
+        Co sprawdzono
+      </label>
+      <input id={`ai-${id}`} name="comment" className="pb-input ui-small" placeholder="np. zgodne z nowym brzmieniem pkt 1a" />
+      <div className="pb-link-row">
+        <button type="submit" name="decision" value="zatwierdz" className="pb-btn pb-btn-secondary pb-expert" disabled={pending}>
+          <Icon name="check" />
+          <span>Zatwierdź i opublikuj</span>
+        </button>
+        <button type="submit" name="decision" value="odrzuc" className="pb-btn pb-btn-quiet pb-expert" disabled={pending}>
+          <span>Odrzuć szkic</span>
+        </button>
+      </div>
+      <Feedback state={res} />
+    </form>
+  );
+}
+
+export function AiDraftRequestForm() {
+  const [res, action, pending] = useActionState<EditorState, FormData>(editorRequestAiDraft, {});
+  return (
+    <form action={action} className="pb-stack-2">
+      <label className="ui-label" htmlFor="ai-unit">
+        Adres karty przepisu
+      </label>
+      <input id="ai-unit" name="unit" className="pb-input ui-small" placeholder="/przepis/prawo-budowlane-art-29-ust-1-pkt-2" />
+      <button type="submit" className="pb-btn pb-btn-quiet pb-expert" disabled={pending}>
+        <span>Zleć szkic AI</span>
+      </button>
+      <Feedback state={res} />
+    </form>
+  );
+}
+
 export function CloseAlarmForm({ id }: { id: number }) {
   const [res, action, pending] = useActionState<EditorState, FormData>(editorCloseAlarm, {});
   return (
     <form action={action} className="pb-stack-2">
-      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="item_id" value={id} />
       <label className="ui-label" htmlFor={`a-${id}`}>
         Co sprawdzono
       </label>

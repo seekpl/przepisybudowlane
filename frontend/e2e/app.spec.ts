@@ -159,3 +159,17 @@ test("pola dotyku w trybie prostym mają co najmniej 44 px", async ({ page }) =>
     expect(box!.height).toBeGreaterThanOrEqual(44);
   }
 });
+
+test("panel redakcji: przycisk decyzji wysyła swoją wartość (formularz przechwycony, bez zapisu)", async ({ page, context }) => {
+  const base = test.info().project.use.baseURL ?? "http://localhost:3000";
+  await context.addCookies([{ name: "pb_redakcja", value: process.env.E2E_EDITOR_TOKEN ?? "tok-jan", url: base }]);
+  await page.goto("/redakcja");
+  await expect(page.getByRole("heading", { name: /Szkice AI do recenzji/ })).toBeVisible();
+  const form = page.locator("section[aria-labelledby=teksty] form").first();
+  await form.locator("input[name=comment]").fill("Odczyt zgodny z PDF.");
+  // Przechwytujemy wysłanie: test sprawdza, że „Zaakceptuj” nie dociera do serwera jako „Odrzuć”.
+  await page.route("**/redakcja", (route) => (route.request().method() === "POST" ? route.abort() : route.continue()));
+  const posted = page.waitForRequest((r) => r.method() === "POST" && new URL(r.url()).pathname === "/redakcja");
+  await form.getByRole("button", { name: "Zaakceptuj tekst" }).click();
+  expect((await posted).postData() ?? "").toMatch(/name="[^"]*decision"\r?\n\r?\nakceptuj/);
+});

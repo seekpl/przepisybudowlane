@@ -71,7 +71,7 @@ export async function editorLogout(): Promise<void> {
 
 export async function editorTransition(_prev: EditorState, formData: FormData): Promise<EditorState> {
   const entity = String(formData.get("entity"));
-  const id = String(formData.get("id"));
+  const id = String(formData.get("item_id"));
   const to = String(formData.get("to_state"));
   const comment = String(formData.get("comment") ?? "").trim() || null;
   try {
@@ -87,7 +87,7 @@ export async function editorTransition(_prev: EditorState, formData: FormData): 
 }
 
 export async function editorCloseTask(_prev: EditorState, formData: FormData): Promise<EditorState> {
-  const id = String(formData.get("id"));
+  const id = String(formData.get("item_id"));
   const resolution = String(formData.get("resolution") ?? "").trim();
   if (resolution.length < 3) return { error: "Opisz krótko, jak rozwiązano zadanie." };
   try {
@@ -103,7 +103,7 @@ export async function editorCloseTask(_prev: EditorState, formData: FormData): P
 }
 
 export async function editorDecideText(_prev: EditorState, formData: FormData): Promise<EditorState> {
-  const id = String(formData.get("id"));
+  const id = String(formData.get("item_id"));
   const accept = formData.get("decision") === "akceptuj";
   const comment = String(formData.get("comment") ?? "").trim();
   if (comment.length < 3) return { error: "Uzasadnij decyzję jednym zdaniem." };
@@ -120,7 +120,7 @@ export async function editorDecideText(_prev: EditorState, formData: FormData): 
 }
 
 export async function editorCloseAlarm(_prev: EditorState, formData: FormData): Promise<EditorState> {
-  const id = String(formData.get("id"));
+  const id = String(formData.get("item_id"));
   const resolution = String(formData.get("resolution") ?? "").trim();
   if (resolution.length < 3) return { error: "Opisz, co sprawdzono i dlaczego można wznowić synchronizację." };
   try {
@@ -192,4 +192,35 @@ export async function editorDecideRule(formData: FormData): Promise<void> {
     body: JSON.stringify({ accept: formData.get("decision") === "zatwierdz" }),
   });
   revalidatePath("/redakcja");
+}
+
+/** Szkic AI: zatwierdzenie publikuje objaśnienie z nazwiskiem recenzenta, odrzucenie zwraca je do szkiców (3.6). */
+export async function editorDecideAiDraft(_prev: EditorState, formData: FormData): Promise<EditorState> {
+  const id = String(formData.get("item_id"));
+  const accept = formData.get("decision") === "zatwierdz";
+  const comment = String(formData.get("comment") ?? "").trim();
+  if (comment.length < 3) return { error: "Napisz jednym zdaniem, co sprawdzono — decyzja jest podpisana Twoim nazwiskiem." };
+  try {
+    await editorialFetch(await token(), `/szkice-ai/${encodeURIComponent(id)}/decyzja`, {
+      method: "POST",
+      body: JSON.stringify({ accept, comment }),
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nie udało się zapisać decyzji." };
+  }
+  revalidatePath("/redakcja");
+  return { ok: accept ? "Objaśnienie opublikowane." : "Szkic odrzucony." };
+}
+
+export async function editorRequestAiDraft(_prev: EditorState, formData: FormData): Promise<EditorState> {
+  const raw = String(formData.get("unit") ?? "").trim();
+  const slug = raw.replace(/^.*\/przepis\//, "").replace(/[?#].*$/, "");
+  if (!slug) return { error: "Wklej adres karty przepisu, np. /przepis/prawo-budowlane-art-29-ust-1-pkt-2." };
+  try {
+    await editorialFetch(await token(), "/szkice-ai", { method: "POST", body: JSON.stringify({ unit_slug: slug }) });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nie udało się zlecić szkicu." };
+  }
+  revalidatePath("/redakcja");
+  return { ok: "Zlecono — szkic pojawi się w kolejce po najbliższym przebiegu workera." };
 }

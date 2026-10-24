@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     report_sla_working_days: int = 5
     report_email_retention_days: int = 30
 
+    # Szkice objaśnień AI (arkusz, 3.3–3.6): worker pisze szkice z zadań „szkic AI”. Klucz API czyta SDK
+    # Anthropic ze zmiennej ANTHROPIC_API_KEY. Szkic nigdy nie publikuje się sam — publikuje recenzent.
+    ai_drafts: bool = False
+    ai_model: str = "claude-opus-5-5"
+    ai_effort: str = "high"
+
     # Tokeny redakcji: "imię=rola1+rola2:token;imię2=rola:token2". Tymczasowe — do czasu OIDC.
     editor_tokens: str = ""
 

@@ -130,6 +130,7 @@ def _explanation_out(s: Session, unit: LegalUnit, version: ExplanationVersion) -
         title=version.title,
         paragraphs=[p.strip() for p in version.body.split("\n\n") if p.strip()],
         is_demo=version.is_demo,
+        ai_assisted=version.ai_model is not None,
         author=version.author,
         reviewer=version.reviewer,
         verified_on=version.verified_on,

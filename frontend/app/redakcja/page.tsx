@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { editorDecideRule, editorDismissMiss, editorLogout } from "@/app/actions";
-import { CloseAlarmForm, CloseTaskForm, LoginForm, SynonymForm, TextDecisionForm, TransitionalForm, TransitionForm } from "@/components/editorial/Forms";
+import { AiDraftDecisionForm, AiDraftRequestForm, CloseAlarmForm, CloseTaskForm, LoginForm, SynonymForm, TextDecisionForm, TransitionalForm, TransitionForm } from "@/components/editorial/Forms";
 import { Icon } from "@/components/ds/Icon";
 import { editorialFetch } from "@/lib/api";
 import { editorToken } from "@/lib/editor";
@@ -76,6 +76,32 @@ interface Miss {
   liczba: number;
   propozycje: string[];
 }
+interface Citation {
+  akapit: string;
+  przepis: string | null;
+  cytat: string;
+}
+interface DiffPart {
+  typ: "bez_zmian" | "usuniete" | "dodane";
+  tekst: string;
+  skrot?: boolean;
+  cytaty?: Citation[];
+}
+interface AiDraft {
+  id: number;
+  wersja: number;
+  akt: string;
+  przepis: string;
+  przepis_slug: string;
+  model: string;
+  utworzono: string;
+  tekst_urzedowy: string | null;
+  zmiana_przepisu: DiffPart[] | null;
+  poprzednie_objasnienie: { wersja: number; stan: string } | null;
+  zmiana_objasnienia: DiffPart[];
+  odrzucone: { tekst: string; bledy: string[] }[];
+  uwagi: string | null;
+}
 interface Report {
   number: string;
   target_label: string | null;
@@ -116,7 +142,7 @@ export default async function Page() {
       </div>
     );
   }
-  const [tasks, contents, texts, reports, alarms, misses, rules] = await Promise.all([
+  const [tasks, contents, texts, reports, alarms, misses, rules, drafts] = await Promise.all([
     editorialFetch<Task[]>(token, "/zadania"),
     editorialFetch<Content[]>(token, "/tresci"),
     editorialFetch<TextReview[]>(token, "/teksty"),
@@ -124,6 +150,7 @@ export default async function Page() {
     editorialFetch<Alarm[]>(token, "/alarmy"),
     editorialFetch<Miss[]>(token, "/propozycje-synonimow"),
     editorialFetch<WizardRule[]>(token, "/reguly-kreatora"),
+    editorialFetch<AiDraft[]>(token, "/szkice-ai"),
   ]);
   const openAlarms = alarms.filter((a) => a.resolved_at === null);
   const waiting = contents.filter((c) => c.state !== "opublikowany" && c.state !== "cofniety");
@@ -176,6 +203,32 @@ export default async function Page() {
           </ul>
         </section>
       ) : null}
+
+      <section aria-labelledby="szkice-ai" className="pb-stack-4">
+        <h2 id="szkice-ai" className="ui-heading">
+          Szkice AI do recenzji ({drafts.length})
+        </h2>
+        <p className="ui-small pb-muted">
+          Szkic napisało AI wyłącznie z tekstu z ELI. Każde zdanie ma cytat sprawdzony automatycznie; zdania bez pokrycia w przepisie
+          zostały odrzucone. Widzisz tylko różnice. Zatwierdzenie publikuje objaśnienie z Twoim nazwiskiem — szkic nigdy nie publikuje
+          się sam.
+        </p>
+        {drafts.length === 0 ? (
+          <p className="ui-body pb-muted">Brak — nowe szkice powstają po zmianie brzmienia opublikowanego objaśnienia albo na zlecenie.</p>
+        ) : (
+          <ul className="pb-list">
+            {drafts.map((d) => (
+              <AiDraftItem key={d.id} draft={d} />
+            ))}
+          </ul>
+        )}
+        {me.roles.includes("redaktor") ? (
+          <details>
+            <summary className="ui-small">Zleć szkic AI dla innego przepisu</summary>
+            <AiDraftRequestForm />
+          </details>
+        ) : null}
+      </section>
 
       <section aria-labelledby="zadania" className="pb-stack-4">
         <h2 id="zadania" className="ui-heading">
@@ -409,6 +462,91 @@ function ContentTable({ rows }: { rows: Content[] }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+function Diff({ parts }: { parts: DiffPart[] }) {
+  return (
+    <p className="pb-diff ui-small">
+      {parts.map((p, i) =>
+        p.typ === "dodane" ? (
+          <ins key={i}>{p.tekst} </ins>
+        ) : p.typ === "usuniete" ? (
+          <del key={i}>{p.tekst} </del>
+        ) : (
+          <span key={i} className="pb-muted">
+            {p.tekst}{" "}
+          </span>
+        ),
+      )}
+    </p>
+  );
+}
+
+/** Szkic AI w kolejce: zmiana brzmienia po słowach, zmiana objaśnienia po zdaniach z cytatami, odrzucone zdania (3.6). */
+function AiDraftItem({ draft: d }: { draft: AiDraft }) {
+  const unchanged = d.zmiana_objasnienia.filter((p) => p.typ === "bez_zmian").length;
+  const changed = d.zmiana_objasnienia.filter((p) => p.typ !== "bez_zmian");
+  return (
+    <li className="pb-list-item pb-stack-3">
+      <p className="ui-body">
+        <strong>
+          {d.akt}, <a href={`/przepis/${d.przepis_slug}`}>{d.przepis}</a>
+        </strong>{" "}
+        <span className="meta-small">
+          wersja {d.wersja} · {d.tekst_urzedowy ?? "tekst z ELI"} · szkic {d.model}, {dateTime(d.utworzono)}
+        </span>
+      </p>
+      {d.zmiana_przepisu ? (
+        <div className="pb-stack-1">
+          <h3 className="ui-label">Zmiana w przepisie</h3>
+          <Diff parts={d.zmiana_przepisu} />
+        </div>
+      ) : (
+        <p className="ui-small pb-muted">
+          {d.poprzednie_objasnienie
+            ? "Brzmienie przepisu się nie zmieniło — szkic zlecony przez redakcję."
+            : "Pierwsze objaśnienie tego przepisu — brak poprzedniej wersji do porównania."}
+        </p>
+      )}
+      <div className="pb-stack-1">
+        <h3 className="ui-label">
+          Zmiana w objaśnieniu
+          {d.poprzednie_objasnienie ? ` (wobec wersji ${d.poprzednie_objasnienie.wersja})` : ""}
+        </h3>
+        <ul className="pb-plain-list ui-small pb-diff">
+          {changed.map((p, i) => (
+            <li key={i} className="pb-diff-sentence">
+              {p.typ === "dodane" ? <ins>{p.tekst}</ins> : <del>{p.tekst}</del>}
+              {p.cytaty?.length ? (
+                <ul className="pb-plain-list pb-diff-quotes">
+                  {p.cytaty.map((c, j) => (
+                    <li key={j} className="meta-small">
+                      {c.przepis ?? c.akapit}: „{c.cytat}”
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        {unchanged > 0 ? <p className="meta-small pb-muted">Bez zmian: {unchanged} zdań.</p> : null}
+      </div>
+      {d.odrzucone.length > 0 ? (
+        <details>
+          <summary className="ui-small">Odrzucone przez walidatory ({d.odrzucone.length})</summary>
+          <ul className="pb-plain-list ui-small">
+            {d.odrzucone.map((r, i) => (
+              <li key={i}>
+                {r.tekst} <span className="pb-muted">— {r.bledy.join(" ")}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {d.uwagi ? <p className="ui-small pb-muted">Uwagi modelu: {d.uwagi}</p> : null}
+      <AiDraftDecisionForm id={d.id} />
+    </li>
   );
 }
 

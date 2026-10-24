@@ -58,6 +58,8 @@ export interface Explanation {
   title: string | null;
   paragraphs: string[];
   is_demo: boolean;
+  /** Szkic napisało AI z tekstu z ELI, sprawdził i opublikował imiennie recenzent. */
+  ai_assisted: boolean;
   author: string;
   reviewer: string | null;
   verified_on: string | null;

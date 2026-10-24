@@ -36,6 +36,7 @@ from app.models import (
 )
 from app.modules.content.wizard_rules import REQUIREMENT_LABEL, describe
 from app.modules.content.wizard_rules import propose as propose_rules
+from app.modules.drafting import service as drafting
 from app.modules.editorial.workflow import ENTITY_MODELS, WorkflowError, entity_name, transition
 from app.modules.freshness.service import current_text, unit_text
 from app.modules.ops.alarms import resolve_alarm
@@ -675,3 +676,65 @@ def decide_rule(
     )
     s.commit()
     return {"id": rule.id, "stan": rule.state}
+
+
+# --- Szkice objaśnień AI (arkusz, działania 3.3–3.6) ------------------------------------------------
+
+
+class AiDraftIn(BaseModel):
+    unit_slug: str
+
+
+class AiDecisionIn(BaseModel):
+    accept: bool
+    comment: str = Field(min_length=3, max_length=2000)
+
+
+@router.get("/szkice-ai", summary="Szkice objaśnień AI w recenzji — różnice brzmienia i objaśnienia, cytaty")
+def ai_drafts(s: Session = Depends(get_session), _: Editor = Depends(current_editor)) -> list[dict[str, Any]]:
+    return drafting.queue(s)
+
+
+@router.post(
+    "/szkice-ai", status_code=202, summary="Zleć szkic AI objaśnienia do bieżącego brzmienia przepisu"
+)
+def request_ai_draft(
+    body: AiDraftIn, s: Session = Depends(get_session), editor: Editor = Depends(current_editor)
+) -> dict[str, Any]:
+    if not editor.can("redaktor"):
+        raise HTTPException(403, "Szkic AI zleca redaktor.")
+    unit = s.scalar(select(LegalUnit).where(LegalUnit.slug == body.unit_slug))
+    if unit is None:
+        raise HTTPException(404, "Nie znaleźliśmy takiego przepisu.")
+    task = drafting.request_draft(
+        s, unit, reason=f"Zlecenie redakcji ({editor.name})", requested_by=editor.name
+    )
+    if task is None:
+        raise HTTPException(409, "Ten przepis nie ma bieżącego tekstu z ELI — nie ma z czego pisać.")
+    s.commit()
+    return {"zadanie": task.id, "stan": task.state, "tytul": task.title}
+
+
+@router.post(
+    "/szkice-ai/{version_id}/decyzja",
+    summary="Zatwierdź (publikacja z Twoim nazwiskiem) albo odrzuć szkic AI",
+)
+def decide_ai_draft(
+    version_id: int,
+    body: AiDecisionIn,
+    s: Session = Depends(get_session),
+    editor: Editor = Depends(current_editor),
+) -> dict[str, Any]:
+    v = s.get(ExplanationVersion, version_id)
+    if v is None:
+        raise HTTPException(404, "Nie ma takiego szkicu.")
+    try:
+        drafting.decide(s, v, accept=body.accept, editor=editor, comment=body.comment)
+    except drafting.DecisionError as exc:
+        raise HTTPException(409 if editor.can("recenzent") else 403, str(exc)) from exc
+    except WorkflowError as exc:
+        raise HTTPException(409, str(exc)) from exc
+    if body.accept:
+        rebuild_index(s)
+    s.commit()
+    return {"id": v.id, "stan": v.state, "recenzent": v.reviewer}
