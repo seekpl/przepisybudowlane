@@ -26,9 +26,10 @@ jedno publiczne API. Bez mikroserwisów, kolejek i osobnego silnika wyszukiwania
 | `sync` | Idempotentny przebieg z checkpointem, wykrywanie zmian i nowelizacji, zawieszanie zależnych treści |
 | `freshness` | Pięć statusów aktualności z powodami (czysta funkcja `evaluate` + odczyt danych z bazy) |
 | `editorial` | Stany redakcyjne i ich historia, zadania redakcyjne, flagi zawieszenia węzłów kreatora |
-| `search` | Lekki stemmer polski, jawny słownik synonimów, indeks PostgreSQL FTS |
+| `search` | Warianty normalizacji (stemmer, lematyzacja Morfeusz 2, Hunspell) z pomiarem trafności, jawny słownik synonimów, indeks PostgreSQL FTS, zapytania bez wyników |
+| `drafting` | Szkice objaśnień AI (Claude API): akapity źródła z etykietami, walidatory bez AI, zadania „szkic AI”, kolejka recenzenta z różnicami |
 | `reports` | Zgłoszenia błędów: termin w dniach roboczych (z polskimi świętami), e-mail tylko ze zgodą, retencja |
-| `content` | Ładowanie manifestu i treści startowych przez prawdziwy obieg redakcyjny |
+| `content` | Ładowanie manifestu i treści startowych przez prawdziwy obieg redakcyjny; definicje ustawowe; reguły kreatora z art. 29 i przepisy do sprawdzenia |
 | `ops` | Panel stanu danych: ostatnia udana synchronizacja, wiek danych, zaległe zadania, błędy pobrań |
 
 ## Model danych i czas prawny
@@ -45,7 +46,8 @@ Tabele z planu (nazwy robocze): `legal_act`, `source_snapshot`, `legal_text_vers
 `legal_unit_version`, `legal_validity_interval`, `system_history`, `explanation_version`,
 `decision_tree_node_version`, `editorial_event` — oraz pomocnicze: `source_fetch`, `source_verification`,
 `detected_amendment`, `editorial_task`, `content_flag`, `guide_version`, `glossary_term_version`,
-`error_report`, `sync_run`, `sync_checkpoint`, `search_document`, `search_synonym`.
+`error_report`, `sync_run`, `sync_checkpoint`, `source_alarm`, `search_document`, `search_synonym`,
+`search_miss`, `wizard_rule`.
 
 ## Status aktualności
 
@@ -70,7 +72,7 @@ Komunikaty stoją przed tekstem przepisu w obu trybach. Każdy ma tytuł i zdani
 4. HTML → parser; jakość poniżej `PB_PARSER_QUALITY_THRESHOLD` albo tylko PDF → kontrola człowieka
    (zadanie), nie publikacja.
 5. Porównanie jednostek z poprzednim tekstem; zmienione → nowe wersje, zawieszone objaśnienia i węzły kreatora,
-   zadania „zmiana tekstu”.
+   zadania „zmiana tekstu”, a dla zawieszonych objaśnień — zadania „szkic AI”.
 6. Nowelizacje z okna roku przed stanem prawnym; późniejsze niż tekst → zadanie z terminem = dzień wejścia w życie.
 7. Checkpoint przesuwa się tylko po w pełni udanym przebiegu; błędy → zadanie „awaria synchronizacji”.
 
@@ -85,6 +87,20 @@ Ten sam kod synchronizacji codziennie nagrywa odpowiedzi prawdziwego ELI w GitHu
 odtwarza je bez sieci.
 
 Idempotencja: migawki unikalne po (URL, SHA-256), wersje tekstu po (akt, migawka), zadania po kluczu deduplikacji.
+
+## Szkice objaśnień AI
+
+1. Zadanie „szkic AI” (po zawieszeniu objaśnienia albo na zlecenie redaktora) wskazuje jednostkę i jej brzmienie.
+2. `drafting.sources` dzieli brzmienie na akapity z identyfikatorami (A1, A2…) i etykietami urzędowymi.
+3. `drafting.claude` wysyła akapity (i przy zmianie: stare brzmienie oraz poprzednie objaśnienie jako wzór
+   układu) do Claude API; wyjście w schemacie JSON — akapity, zdania, a w każdym zdaniu cytaty z akapitów.
+   Odmowę modelu API ponawia na modelu zastępczym (`fallbacks: "default"`); błąd albo odmowa zostawia zadanie
+   otwarte (do trzech prób).
+4. `drafting.validators` (bez AI) odrzuca zdanie, gdy cytatu nie ma dosłownie we wskazanym akapicie albo gdy
+   liczba, data lub odesłanie ze zdania nie występuje w cytowanych akapitach.
+5. Zdania, które przeszły, tworzą wersję objaśnienia w stanie „recenzja” (autor `szkic-ai`) z zapisanymi
+   cytatami i raportem walidatorów. Recenzent widzi różnice i zatwierdza (publikacja z jego nazwiskiem)
+   albo odrzuca; reguła „autor nie zatwierdza własnej treści” wyklucza publikację bez człowieka.
 
 ## Frontend
 

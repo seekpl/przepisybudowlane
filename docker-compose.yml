@@ -44,6 +44,9 @@ services:
       <<: *backend-env
       # Treści demonstracyjne czekają na tekst z ELI — worker dokańcza je po każdej synchronizacji.
       PB_SEED_AFTER_SYNC: "true"
+      # Szkice objaśnień AI do recenzji: PB_AI_DRAFTS=true i klucz Claude API w środowisku hosta.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      PB_AI_DRAFTS: ${PB_AI_DRAFTS:-false}
     command: python -m app.cli worker
     volumes:
       - archive:/app/var/archive

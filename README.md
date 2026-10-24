@@ -18,7 +18,7 @@ Zbudowana według dwóch dokumentów:
 
 | Obszar | Gdzie | Co robi |
 |---|---|---|
-| Backend (modułowy monolit) | [`backend/`](backend/) | FastAPI + PostgreSQL: rejestr aktów, adapter ELI, archiwum z SHA-256, parser jednostek, wersje append-only, silnik statusów aktualności, obieg redakcyjny, wyszukiwarka FTS z synonimami, publiczne API (OpenAPI) |
+| Backend (modułowy monolit) | [`backend/`](backend/) | FastAPI + PostgreSQL: rejestr aktów, adapter ELI z kontraktem i alarmem, archiwum z SHA-256, parser jednostek (HTML i PDF), wersje append-only, silnik statusów aktualności, obieg redakcyjny, szkice objaśnień AI z cytatami do recenzji, wyszukiwarka FTS z lematyzacją i synonimami, publiczne API (OpenAPI) |
 | Frontend (PWA) | [`frontend/`](frontend/) | Next.js 15 + React 19 + TypeScript; komponenty z identyfikacji; tryb prosty i ekspercki; motyw jasny i ciemny |
 | Identyfikacja | [`design/`](design/) | `tokens.json` (źródło `frontend/app/tokens.css`), brand book, profil UX |
 | Dokumentacja | [`docs/`](docs/) | Architektura, stan prac, decyzje otwarte |
@@ -42,6 +42,20 @@ docker compose up --build
 Kontener `worker` co godzinę synchronizuje akty z ELI API Kancelarii Sejmu (wymaga dostępu do `api.sejm.gov.pl`)
 i po każdej synchronizacji dokańcza treści startowe. Tekstu prawa nie ma w danych startowych — do pierwszej
 synchronizacji karty przepisów są puste i mówią to wprost.
+
+### Szkice objaśnień AI (opcjonalnie)
+
+Gdy zmieni się brzmienie przepisu z opublikowanym objaśnieniem, objaśnienie jest zawieszane, a system zleca
+szkic nowego. Szkic pisze Claude wyłącznie z tekstu z ELI; każde zdanie ma cytat sprawdzany automatycznie.
+Szkic trafia do kolejki w panelu redakcji — publikuje go recenzent z nazwiska, nigdy automat.
+
+```bash
+export ANTHROPIC_API_KEY=…          # klucz Claude API (czyta go SDK Anthropic)
+uv run python -m app.cli szkice-ai  # jeden przebieg: szkice z otwartych zadań „szkic AI”
+# albo w workerze: PB_AI_DRAFTS=true (model: PB_AI_MODEL, wysiłek: PB_AI_EFFORT)
+```
+
+Bez klucza wszystko działa jak dotąd — zadania „szkic AI” czekają, a objaśnienie może napisać redaktor.
 
 ## Uruchomienie bez Dockera
 
@@ -69,7 +83,7 @@ BACKEND_URL=http://localhost:8000 npm run dev
 ```bash
 cd backend && uv run pytest            # stan prawny, parser, ELI i kontrakt, synchronizacja, redakcja, API
 cd frontend && npm run lint && npm run typecheck && npm run build
-cd frontend && npx playwright test     # 26 testów E2E na działającej aplikacji, w tym axe (WCAG 2.1 AA)
+cd frontend && npx playwright test     # 28 testów E2E na działającej aplikacji, w tym axe (WCAG 2.1 AA)
 ```
 
 CI (`.github/workflows/ci.yml`) uruchamia lint, typy, zgodność migracji z modelem, testy backendu, build
@@ -90,4 +104,6 @@ Allow GitHub Actions to create and approve pull requests*). Szczegóły:
   weryfikacji) karta mówi „Nie potwierdzono aktualności”; offline aplikacja nie pokazuje zapamiętanego tekstu.
 - **Maszyna wykrywa, człowiek zatwierdza** — synchronizacja tworzy zadania i zawiesza objaśnienia zmienionych
   przepisów; publikuje dopiero niezależny recenzent (autor nie zatwierdza własnej treści).
+- **AI pisze szkice, nie publikuje** — szkic objaśnienia powstaje tylko z tekstu z ELI, każde zdanie ma cytat,
+  a liczby, daty i odesłania spoza cytowanego tekstu odrzuca walidator; publikuje recenzent z nazwiska.
 - **Historii nie nadpisujemy** — wersje tekstów, jednostek i objaśnień są tylko dopisywane.
