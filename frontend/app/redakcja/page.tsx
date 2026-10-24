@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { editorDismissMiss, editorLogout } from "@/app/actions";
+import { editorDecideRule, editorDismissMiss, editorLogout } from "@/app/actions";
 import { CloseAlarmForm, CloseTaskForm, LoginForm, SynonymForm, TextDecisionForm, TransitionalForm, TransitionForm } from "@/components/editorial/Forms";
 import { Icon } from "@/components/ds/Icon";
 import { editorialFetch } from "@/lib/api";
@@ -62,6 +62,14 @@ interface Alarm {
   resolved_by: string | null;
   resolution: string | null;
 }
+interface WizardRule {
+  id: number;
+  jednostka: string;
+  adres: string | null;
+  obiekt: string;
+  wymog: string;
+  warunki: string[];
+}
 interface Miss {
   id: number;
   zapytanie: string;
@@ -108,13 +116,14 @@ export default async function Page() {
       </div>
     );
   }
-  const [tasks, contents, texts, reports, alarms, misses] = await Promise.all([
+  const [tasks, contents, texts, reports, alarms, misses, rules] = await Promise.all([
     editorialFetch<Task[]>(token, "/zadania"),
     editorialFetch<Content[]>(token, "/tresci"),
     editorialFetch<TextReview[]>(token, "/teksty"),
     editorialFetch<Report[]>(token, "/zgloszenia"),
     editorialFetch<Alarm[]>(token, "/alarmy"),
     editorialFetch<Miss[]>(token, "/propozycje-synonimow"),
+    editorialFetch<WizardRule[]>(token, "/reguly-kreatora"),
   ]);
   const openAlarms = alarms.filter((a) => a.resolved_at === null);
   const waiting = contents.filter((c) => c.state !== "opublikowany" && c.state !== "cofniety");
@@ -272,6 +281,55 @@ export default async function Page() {
                     </td>
                     <td className="meta-small">{shortDate(r.due_on)}</td>
                     <td>{r.state}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section aria-labelledby="reguly" className="pb-stack-4">
+        <h2 id="reguly" className="ui-heading">
+          Reguły kreatora do przeglądu ({rules.length})
+        </h2>
+        <p className="ui-small pb-muted">
+          Automat odczytał punkty art. 29 Prawa budowlanego jako reguły. Do kreatora trafia tylko reguła zatwierdzona przez recenzenta;
+          gdy brzmienie punktu się zmieni, reguła wraca tutaj.
+        </p>
+        {rules.length === 0 ? (
+          <p className="ui-body pb-muted">Brak — wszystkie reguły mają decyzję albo tekst art. 29 czeka na kontrolę.</p>
+        ) : (
+          <div className="pb-table-wrap" tabIndex={0} role="region" aria-label="Tabela — przewiń w poziomie, jeśli się nie mieści">
+            <table className="pb-table ui-small">
+              <thead>
+                <tr>
+                  <th scope="col">Przepis</th>
+                  <th scope="col">Obiekt i warunki</th>
+                  <th scope="col">Wymóg</th>
+                  <th scope="col">Decyzja</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rules.slice(0, 40).map((r) => (
+                  <tr key={r.id}>
+                    <td>{r.adres ? <a href={r.adres}>{r.jednostka}</a> : r.jednostka}</td>
+                    <td>
+                      {r.obiekt}
+                      {r.warunki.length > 0 ? <div className="pb-muted">{r.warunki.join("; ")}</div> : null}
+                    </td>
+                    <td>{r.wymog}</td>
+                    <td>
+                      <form action={editorDecideRule} className="pb-link-row">
+                        <input type="hidden" name="rule_id" value={r.id} />
+                        <button type="submit" name="decision" value="zatwierdz" className="pb-btn pb-btn-secondary pb-expert">
+                          <span>Zatwierdź</span>
+                        </button>
+                        <button type="submit" name="decision" value="odrzuc" className="pb-btn pb-btn-quiet pb-expert">
+                          <span>Odrzuć</span>
+                        </button>
+                      </form>
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -25,13 +25,17 @@ from app.models import (
     LegalAct,
     LegalTextVersion,
     LegalUnit,
+    LegalUnitVersion,
     LegalValidityInterval,
     SearchMiss,
     SearchSynonym,
     SourceAlarm,
     TextReview,
     ValidityKind,
+    WizardRule,
 )
+from app.modules.content.wizard_rules import REQUIREMENT_LABEL, describe
+from app.modules.content.wizard_rules import propose as propose_rules
 from app.modules.editorial.workflow import ENTITY_MODELS, WorkflowError, entity_name, transition
 from app.modules.freshness.service import current_text, unit_text
 from app.modules.ops.alarms import resolve_alarm
@@ -397,6 +401,7 @@ def decide_text(
         if previous is not None and becomes_current:
             # Przyjęty tekst zastępuje poprzedni: zmienione jednostki zawieszają objaśnienia i węzły kreatora.
             changed = diff_units(s, t.act, previous, t)
+        propose_rules(s, t)  # reguły kreatora z art. 29 do przeglądu (4.1)
         rebuild_index(s)
     s.commit()
     return {"id": t.id, "stan": t.review_state, "zmienione_jednostki": changed}
@@ -608,3 +613,65 @@ def dismiss_proposal(
     record(s, actor=editor.name, entity="search_miss", entity_id=miss.id, action="odrzucono")
     s.commit()
     return {"id": miss.id, "stan": miss.resolved}
+
+
+# --- Reguły kreatora z art. 29 (arkusz, działanie 4.1) ------------------------------------------------
+
+
+class RuleDecisionIn(BaseModel):
+    accept: bool
+    comment: str | None = Field(default=None, max_length=1000)
+
+
+@router.get("/reguly-kreatora", summary="Reguły kreatora odczytane z art. 29 — propozycje do przeglądu")
+def wizard_rules(
+    stan: str = "propozycja", s: Session = Depends(get_session), _: Editor = Depends(current_editor)
+) -> list[dict[str, Any]]:
+    rows = s.scalars(select(WizardRule).where(WizardRule.state == stan).order_by(WizardRule.id)).all()
+    out = []
+    for r in rows:
+        unit = s.get(LegalUnit, r.unit_id)
+        uv = s.scalar(
+            select(LegalUnitVersion).where(
+                LegalUnitVersion.unit_id == r.unit_id, LegalUnitVersion.text_version_id == r.text_version_id
+            )
+        )
+        out.append(
+            {
+                "id": r.id,
+                "jednostka": unit.label if unit else r.unit_key,
+                "adres": f"/przepis/{unit.slug}" if unit else None,
+                "obiekt": r.object_text,
+                "wymog": REQUIREMENT_LABEL[r.requirement],
+                "warunki": [describe(c) for c in r.conditions],
+                "brzmienie": uv.content if uv else [],
+                "stan": r.state,
+            }
+        )
+    return out
+
+
+@router.post("/reguly-kreatora/{rule_id}/decyzja", summary="Zatwierdź albo odrzuć regułę kreatora")
+def decide_rule(
+    rule_id: int,
+    body: RuleDecisionIn,
+    s: Session = Depends(get_session),
+    editor: Editor = Depends(current_editor),
+) -> dict[str, Any]:
+    if not editor.can("recenzent"):
+        raise HTTPException(403, "Reguły kreatora zatwierdza recenzent.")
+    rule = s.get(WizardRule, rule_id)
+    if rule is None or rule.state != "propozycja":
+        raise HTTPException(409, "Ta reguła nie czeka na decyzję.")
+    rule.state = "zatwierdzona" if body.accept else "odrzucona"
+    rule.reviewed_by, rule.reviewed_at, rule.comment = editor.name, now(), body.comment
+    record(
+        s,
+        actor=editor.name,
+        entity="wizard_rule",
+        entity_id=rule.id,
+        action=rule.state,
+        komentarz=body.comment,
+    )
+    s.commit()
+    return {"id": rule.id, "stan": rule.state}

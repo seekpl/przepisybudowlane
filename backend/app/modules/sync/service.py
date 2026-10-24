@@ -51,6 +51,7 @@ from app.models import (
     ValidityKind,
 )
 from app.modules.archive.storage import Archive
+from app.modules.content.wizard_rules import propose as propose_rules
 from app.modules.editorial import tasks
 from app.modules.editorial.flags import flag_content
 from app.modules.editorial.workflow import system_suspend
@@ -580,6 +581,8 @@ class SyncService:
             jakosc=result.quality,
             stan=version.review_state,
         )
+        if accepted:
+            propose_rules(s, version)  # reguły kreatora z art. 29 do przeglądu (4.1)
         if not accepted:
             what = (
                 "tekst tylko w PDF — porównaj odczyt z oryginałem"

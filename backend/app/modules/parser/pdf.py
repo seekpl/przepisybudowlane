@@ -32,6 +32,9 @@ _MARKER = re.compile(
 _HYPHENATED = re.compile(r"(\w+)-$")
 _WORD_WITH_HYPHEN = re.compile(r"\b\w+-\w+\b")
 _SUPERSCRIPT = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
+# Odstęp (ułamek wielkości czcionki), od którego zaczyna się nowy wyraz. W wierszach ściśniętych przy
+# justowaniu odstęp między wyrazami spada do ~0,14 em, a litery w wyrazie dzieli najwyżej ~0,02 em.
+WORD_GAP = 0.08
 
 
 @dataclass
@@ -64,13 +67,13 @@ def _line_text(chars: list[dict[str, Any]], body: float) -> str:
                 j += 1
             group = "".join(ch["text"] for ch in chars[i:j])
             if not _FOOTNOTE_REF.match(group):
-                if prev_x1 is not None and c["x0"] - prev_x1 > body * 0.15:
+                if prev_x1 is not None and c["x0"] - prev_x1 > body * WORD_GAP:
                     out.append(" ")
                 out.append(group.translate(_SUPERSCRIPT) if group.isdigit() else group)
             prev_x1 = chars[j - 1]["x1"]
             i = j
             continue
-        if c["text"] == " " or (prev_x1 is not None and c["x0"] - prev_x1 > body * 0.15):
+        if c["text"] == " " or (prev_x1 is not None and c["x0"] - prev_x1 > body * WORD_GAP):
             out.append(" ")
         out.append(c["text"])
         prev_x1 = c["x1"]

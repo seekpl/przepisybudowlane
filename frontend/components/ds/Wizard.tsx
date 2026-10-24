@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { shortDate, typo } from "@/lib/format";
-import type { Mode, Tree, TreeNode } from "@/lib/types";
+import type { Mode, ToCheck, Tree, TreeNode } from "@/lib/types";
 
 import { StatusBadge } from "./Badges";
 import { Button, ButtonLink } from "./Button";
 import { FreshnessNotice } from "./FreshnessNotice";
 import { Icon } from "./Icon";
+import { LawText } from "./LawText";
 
 interface Answer {
   node: string;
@@ -62,10 +63,42 @@ function Stepper({ labels, current }: { labels: string[]; current: number }) {
   );
 }
 
+/** Przepisy do sprawdzenia przy przypadku poza zakresem — dosłowne brzmienie, wyraźnie „nie odpowiedź”. */
+function ToCheckList({ items, mode }: { items: ToCheck[]; mode: Mode }) {
+  return (
+    <section className="pb-to-check" aria-labelledby="do-sprawdzenia">
+      <h3 id="do-sprawdzenia" className={mode === "simple" ? "ui-heading" : "ui-label"}>
+        Przepisy do sprawdzenia — to nie jest odpowiedź
+      </h3>
+      <p className="ui-small pb-muted">
+        {typo("Te punkty art. 29 Prawa budowlanego mówią o podobnych obiektach. Czy dotyczą Twojej budowy, zależy od jej wymiarów i położenia — sprawdź ich warunki albo zapytaj w starostwie.")}
+      </p>
+      <ul className="pb-plain-list">
+        {items.map((x) => (
+          <li key={x.unit_slug} className="pb-to-check-item">
+            <p className="ui-small pb-muted">{x.intro}</p>
+            <LawText mode={mode} paragraphs={x.paragraphs} />
+            {x.rule ? (
+              <p className="ui-small pb-rule">
+                <Icon name="check" />
+                {typo(`Redakcja sprawdziła ten punkt: ${x.rule.wymog}${x.rule.warunki.length ? `, gdy: ${x.rule.warunki.join("; ")}` : ""}.`)}
+              </p>
+            ) : null}
+            <p className="ui-small">
+              <Link href={x.url}>Prawo budowlane, {x.label}</Link>
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function Result({
   node,
   mode,
   tree,
+  answer,
   focus,
   onBack,
   onRestart,
@@ -73,10 +106,12 @@ function Result({
   node: TreeNode;
   mode: Mode;
   tree: Tree;
+  answer: string | null;
   focus: boolean;
   onBack: () => void;
   onRestart: () => void;
 }) {
+  const toCheck = answer ? (node.to_check?.[answer] ?? []) : [];
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     if (focus) heading.current?.focus();
@@ -137,6 +172,7 @@ function Result({
           {typo(`Zweryfikowano ${shortDate(tree.verified_on)}. Informacja, nie porada prawna; w sprawie konkretnej działki zapytaj w starostwie.`)}
         </p>
       )}
+      {toCheck.length > 0 ? <ToCheckList items={toCheck} mode={mode} /> : null}
       {node.links.length > 0 ? (
         <div className="pb-link-row">
           {node.links.map((l) => (
@@ -313,6 +349,8 @@ export function Wizard({ tree, mode }: { tree: Tree; mode: Mode }) {
   }, [path, tree]);
   const node = tree.nodes[currentKey];
   const labels = stepLabels(tree, path, currentKey);
+  const last = path[path.length - 1];
+  const lastAnswer = last ? (tree.nodes[last.node]?.options[last.choice]?.label ?? null) : null;
 
   if (!node) return <p className="ui-body">Ten kreator jest niekompletny. Zgłoś błąd, a poprawimy go.</p>;
 
@@ -324,6 +362,7 @@ export function Wizard({ tree, mode }: { tree: Tree; mode: Mode }) {
           node={node}
           mode={mode}
           tree={tree}
+          answer={lastAnswer}
           focus={moved}
           onBack={() => {
             // Wracamy na początek z zaznaczonymi poprzednimi odpowiedziami.

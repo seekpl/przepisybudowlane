@@ -571,6 +571,30 @@ class SearchDocument(Base):
     updated_at: Mapped[datetime] = _ts()
 
 
+class WizardRule(Base):
+    """Reguła kreatora z punktu art. 29 (arkusz, działanie 4.1): propozycja automatu, decyzja recenzenta."""
+
+    __tablename__ = "wizard_rule"
+    __table_args__ = (UniqueConstraint("text_version_id", "unit_key", name="uq_wizard_rule_unit"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    act_id: Mapped[int] = mapped_column(ForeignKey("legal_act.id"))
+    text_version_id: Mapped[int] = mapped_column(ForeignKey("legal_text_version.id"))
+    unit_id: Mapped[int] = mapped_column(ForeignKey("legal_unit.id"))
+    unit_key: Mapped[str] = mapped_column(String(80))
+    content_hash: Mapped[str] = mapped_column(String(64))
+    requirement: Mapped[str] = mapped_column(String(20))  # zgloszenie | bez_zgloszenia
+    object_text: Mapped[str] = mapped_column(Text)
+    conditions: Mapped[list[dict[str, Any]]] = mapped_column(Json, default=list)
+    state: Mapped[str] = mapped_column(
+        String(20), default="propozycja"
+    )  # propozycja | zatwierdzona | odrzucona
+    reviewed_by: Mapped[str | None] = mapped_column(String(120))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    comment: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _ts()
+
+
 class SearchMiss(Base):
     """Zapytanie bez wyników (arkusz, działanie 5.4) — tylko znormalizowany tekst i licznik.
 

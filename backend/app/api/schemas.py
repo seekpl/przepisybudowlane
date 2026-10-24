@@ -266,6 +266,19 @@ class TreeOption(BaseModel):
     next: str
 
 
+class ToCheckOut(BaseModel):
+    """Przepis do sprawdzenia przy przypadku, którego kreator nie obejmuje — dosłownie, bez oceny (4.2)."""
+
+    unit_slug: str
+    label: str
+    intro: str
+    paragraphs: list[Paragraph]
+    url: str
+    rule: dict[str, Any] | None = Field(
+        default=None, description="Reguła zatwierdzona przez recenzenta (4.1)"
+    )
+
+
 class TreeNodeOut(BaseModel):
     key: str
     kind: NodeKind
@@ -284,6 +297,8 @@ class TreeNodeOut(BaseModel):
     status_effective_date: dt.date | None
     suspended: bool
     suspended_reason: str | None
+    # Dla wyników „poza zakresem”: przepisy do sprawdzenia według odpowiedzi, która tu prowadzi.
+    to_check: dict[str, list[ToCheckOut]] = Field(default_factory=dict)
 
 
 class TreeOut(BaseModel):

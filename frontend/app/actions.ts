@@ -185,3 +185,11 @@ export async function editorDismissMiss(formData: FormData): Promise<void> {
   });
   revalidatePath("/redakcja");
 }
+
+export async function editorDecideRule(formData: FormData): Promise<void> {
+  await editorialFetch(await token(), `/reguly-kreatora/${encodeURIComponent(String(formData.get("rule_id")))}/decyzja`, {
+    method: "POST",
+    body: JSON.stringify({ accept: formData.get("decision") === "zatwierdz" }),
+  });
+  revalidatePath("/redakcja");
+}

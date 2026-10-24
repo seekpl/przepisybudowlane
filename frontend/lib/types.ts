@@ -260,6 +260,18 @@ export interface TreeNode {
   status_effective_date: string | null;
   suspended: boolean;
   suspended_reason: string | null;
+  /** Wynik „poza zakresem”: przepisy do sprawdzenia według odpowiedzi, która tu prowadzi (dosłownie, bez oceny). */
+  to_check: Record<string, ToCheck[]>;
+}
+
+export interface ToCheck {
+  unit_slug: string;
+  label: string;
+  intro: string;
+  paragraphs: Paragraph[];
+  url: string;
+  /** Reguła zatwierdzona przez recenzenta dla tego brzmienia. */
+  rule: { wymog: string; warunki: string[]; zatwierdzil: string | null } | null;
 }
 
 export interface Tree {

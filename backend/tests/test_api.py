@@ -207,3 +207,34 @@ def test_definitions_from_real_consolidated_text() -> None:
     assert nominative(term) == "budynek mieszkalny"
     assert [p["unit"] for p in paras] == ["4)", "a)", "b)"]
     assert len(found) >= 25
+
+
+def test_out_of_scope_wizard_result_lists_provisions_to_check() -> None:
+    """4.2 na prawdziwym t.j. PB (odczyt PDF z nagrania): „Ogrodzenie” → art. 29 ust. 1 pkt 21 i ust. 2 pkt 20."""
+    from pathlib import Path
+
+    import pytest
+
+    from app.modules.content.to_check import rank
+    from app.modules.parser.pdf import parse_pdf
+
+    pdf = (
+        Path(__file__).parent / "fixtures" / "eli" / "recorded" / "acts" / "DU" / "2026" / "524" / "text.pdf"
+    )
+    if not pdf.exists():
+        pytest.skip("brak nagrania t.j. Prawa budowlanego")
+    units = {k: u.content for k, u in parse_pdf(pdf.read_bytes()).units.items()}
+    fence = rank(units, "Ogrodzenie")
+    assert {"art_29.ust_1.pkt_21", "art_29.ust_2.pkt_20"} <= set(fence)
+    garage = rank(units, "Garaż, wiatę, altanę albo budynek gospodarczy")
+    assert {"art_29.ust_1.pkt_14.lit_b", "art_29.ust_1.pkt_14.lit_c", "art_29.ust_2.pkt_3"} <= set(garage)
+    # Opis bez konkretnego obiektu nie daje listy — lepiej nic niż szum.
+    assert rank(units, "Coś innego") == []
+
+
+def test_wizard_api_carries_provisions_to_check(seeded: Session, api: TestClient) -> None:
+    tree = api.get("/api/v1/kreatory/pozwolenie-zgloszenie").json()
+    node = tree["nodes"]["poza-zakresem"]
+    # Syntetyczny t.j. PB nie ma art. 29 ust. 2 — lista może być pusta, ale pole jest w kontrakcie API.
+    assert isinstance(node["to_check"], dict)
+    assert tree["nodes"]["wynik-zgloszenie"]["to_check"] == {}

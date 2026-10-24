@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -21,6 +21,7 @@ from app.models import (
     LegalUnitVersion,
     TextReview,
 )
+from app.modules.content.to_check import to_check
 from app.modules.editorial.flags import active_flags
 from app.modules.editorial.workflow import public_version, suspension_reason
 from app.modules.freshness import service as fresh
@@ -359,6 +360,29 @@ def act_out(s: Session, act: LegalAct) -> o.ActOut:
     )
 
 
+def _to_check(s: Session, nodes: list[Any], key: str) -> dict[str, list[o.ToCheckOut]]:
+    """Dla każdej odpowiedzi prowadzącej do wyniku „poza zakresem”: pasujące punkty art. 29 (4.2)."""
+    out: dict[str, list[o.ToCheckOut]] = {}
+    for node in nodes:
+        for opt in node.options or []:
+            if opt.get("next") != key or opt["label"] in out:
+                continue
+            found = [
+                o.ToCheckOut(
+                    unit_slug=x.unit_slug,
+                    label=x.label,
+                    intro=x.intro,
+                    paragraphs=[o.Paragraph(**para) for para in x.paragraphs],
+                    url=f"/przepis/{x.unit_slug}",
+                    rule=x.rule,
+                )
+                for x in to_check(s, opt["label"])
+            ]
+            if found:
+                out[opt["label"]] = found
+    return out
+
+
 def tree_out(s: Session, tree: DecisionTree) -> o.TreeOut | None:
     tv = public_version(tree.versions)
     if tv is None or tv.state != S.OPUBLIKOWANY:
@@ -399,6 +423,7 @@ def tree_out(s: Session, tree: DecisionTree) -> o.TreeOut | None:
             status_effective_date=status_eff,
             suspended=flag is not None,
             suspended_reason=flag.reason if flag else None,
+            to_check=_to_check(s, tv.nodes, n.node_key) if n.outcome == "poza_zakresem" else {},
         )
     return o.TreeOut(
         slug=tree.slug,
