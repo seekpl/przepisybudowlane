@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
-import { editorLogout } from "@/app/actions";
-import { CloseAlarmForm, CloseTaskForm, LoginForm, TextDecisionForm, TransitionalForm, TransitionForm } from "@/components/editorial/Forms";
+import { editorDismissMiss, editorLogout } from "@/app/actions";
+import { CloseAlarmForm, CloseTaskForm, LoginForm, SynonymForm, TextDecisionForm, TransitionalForm, TransitionForm } from "@/components/editorial/Forms";
 import { Icon } from "@/components/ds/Icon";
 import { editorialFetch } from "@/lib/api";
 import { editorToken } from "@/lib/editor";
@@ -62,6 +62,12 @@ interface Alarm {
   resolved_by: string | null;
   resolution: string | null;
 }
+interface Miss {
+  id: number;
+  zapytanie: string;
+  liczba: number;
+  propozycje: string[];
+}
 interface Report {
   number: string;
   target_label: string | null;
@@ -102,12 +108,13 @@ export default async function Page() {
       </div>
     );
   }
-  const [tasks, contents, texts, reports, alarms] = await Promise.all([
+  const [tasks, contents, texts, reports, alarms, misses] = await Promise.all([
     editorialFetch<Task[]>(token, "/zadania"),
     editorialFetch<Content[]>(token, "/tresci"),
     editorialFetch<TextReview[]>(token, "/teksty"),
     editorialFetch<Report[]>(token, "/zgloszenia"),
     editorialFetch<Alarm[]>(token, "/alarmy"),
+    editorialFetch<Miss[]>(token, "/propozycje-synonimow"),
   ]);
   const openAlarms = alarms.filter((a) => a.resolved_at === null);
   const waiting = contents.filter((c) => c.state !== "opublikowany" && c.state !== "cofniety");
@@ -270,6 +277,35 @@ export default async function Page() {
               </tbody>
             </table>
           </div>
+        )}
+      </section>
+
+      <section aria-labelledby="bez-wynikow" className="pb-stack-4">
+        <h2 id="bez-wynikow" className="ui-heading">
+          Zapytania bez wyników ({misses.length})
+        </h2>
+        <p className="ui-small pb-muted">
+          Zapisujemy tylko treść zapytania i liczbę wystąpień — bez danych o osobie. Podpowiedzi to słowa z indeksu podobne do szukanego.
+        </p>
+        {misses.length === 0 ? (
+          <p className="ui-body pb-muted">Brak — każde zapytanie coś znalazło.</p>
+        ) : (
+          <ul className="pb-list">
+            {misses.map((m) => (
+              <li key={m.id} className="pb-list-item pb-stack-2">
+                <p className="ui-body">
+                  <strong>„{m.zapytanie}”</strong> <span className="meta-small">{m.liczba} ×</span>
+                </p>
+                <SynonymForm missId={m.id} term={m.zapytanie} suggestions={m.propozycje} />
+                <form action={editorDismissMiss}>
+                  <input type="hidden" name="miss_id" value={m.id} />
+                  <button type="submit" className="pb-btn pb-btn-quiet pb-expert">
+                    <span>Odrzuć — synonim niepotrzebny</span>
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

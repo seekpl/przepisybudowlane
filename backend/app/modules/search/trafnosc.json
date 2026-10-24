@@ -1,0 +1,105 @@
+{
+ "data": "2026-10-21T11:54:18+00:00",
+ "zestaw": {
+  "przypadki": 439,
+  "zrodla": {
+   "bez_znakow": 58,
+   "definicja": 22,
+   "haslo": 11,
+   "odmiana": 330,
+   "synonim": 17,
+   "tytul": 1
+  }
+ },
+ "warianty": {
+  "stemmer": {
+   "recall@5": 0.8497,
+   "mrr@10": 0.6513,
+   "wg_zrodla": {
+    "bez_znakow": 0.8448,
+    "definicja": 0.9091,
+    "haslo": 0.8182,
+    "odmiana": 0.8485,
+    "synonim": 0.8235,
+    "tytul": 1.0
+   },
+   "przyklady_chybien": [
+    "budowy",
+    "budowie",
+    "budowę",
+    "budową",
+    "budów",
+    "budowom",
+    "budowami",
+    "budowach",
+    "budowe",
+    "budowa",
+    "budynku",
+    "budynkowi",
+    "budynkiem",
+    "budynków",
+    "budynkom"
+   ]
+  },
+  "lematyzacja": {
+   "recall@5": 0.9226,
+   "mrr@10": 0.6833,
+   "wg_zrodla": {
+    "bez_znakow": 0.8966,
+    "definicja": 1.0,
+    "haslo": 0.9091,
+    "odmiana": 0.9273,
+    "synonim": 0.8235,
+    "tytul": 1.0
+   },
+   "przyklady_chybien": [
+    "budowe",
+    "budynku",
+    "budynkowi",
+    "budynkiem",
+    "budynków",
+    "budynkom",
+    "budynki",
+    "budynkami",
+    "budynkach",
+    "budynek",
+    "wysokosciom budynku",
+    "dzialce budowlanej",
+    "kondygnacji nadziemnej",
+    "kondygnację nadziemną",
+    "kondygnacją nadziemną"
+   ]
+  },
+  "hunspell": {
+   "recall@5": 0.8975,
+   "mrr@10": 0.6842,
+   "wg_zrodla": {
+    "bez_znakow": 0.7069,
+    "definicja": 1.0,
+    "haslo": 0.9091,
+    "odmiana": 0.9273,
+    "synonim": 0.8235,
+    "tytul": 1.0
+   },
+   "przyklady_chybien": [
+    "budowe",
+    "budynku",
+    "budynkowi",
+    "budynkiem",
+    "budynków",
+    "budynkom",
+    "budynki",
+    "budynkami",
+    "budynkach",
+    "budynek",
+    "wysokosc budynku",
+    "wysokosci budynku",
+    "wysokoscia budynku",
+    "wysokosciom budynku",
+    "dzialka budowlana"
+   ]
+  }
+ },
+ "niedostepne": [],
+ "zwyciezca": "lematyzacja"
+}

@@ -6,6 +6,7 @@ seed               manifest aktów + treści startowe + indeks wyszukiwarki (ide
 sync               jeden przebieg synchronizacji z ELI; --replay KATALOG: z nagrań zamiast sieci
 worker             synchronizacja co PB_SYNC_INTERVAL_MINUTES z ponawianiem; sprząta e-maile po retencji
 reindex            przebudowa indeksu wyszukiwarki
+search-eval        trafność wyszukiwarki: zestaw z treści, trzy warianty, porównanie z trafnosc.json
 eli-record         nagranie odpowiedzi ELI dla aktów z manifestu do testów kontraktu (wymaga dostępu do
                    api.sejm.gov.pl i świeżej bazy z manifestem; w CI: workflow eli-nagrania)
 """
@@ -170,6 +171,42 @@ def _record(out: Path) -> int:
     return 0
 
 
+def _search_eval(save: bool, cases_out: Path | None) -> int:
+    """Trafność wyszukiwarki w trzech wariantach na zestawie zbudowanym z treści (arkusz, 5.1–5.3)."""
+    from app.modules.search.evaluation import (
+        BASELINE,
+        build_cases,
+        cases_json,
+        compare_with_baseline,
+        evaluate,
+        save_baseline,
+    )
+
+    with get_sessionmaker()() as s:
+        cases = build_cases(s)
+        if cases_out is not None:
+            cases_out.write_text(cases_json(cases) + "\n", encoding="utf-8")
+        report = evaluate(s, cases)
+        s.commit()
+    log.info("Zestaw: %s przypadków %s", report["zestaw"]["przypadki"], report["zestaw"]["zrodla"])
+    for name, r in report["warianty"].items():
+        log.info("%-12s recall@5 %.3f  MRR@10 %.3f  %s", name, r["recall@5"], r["mrr@10"], r["wg_zrodla"])
+    if report["niedostepne"]:
+        log.warning("Niedostępne w tym środowisku: %s", ", ".join(report["niedostepne"]))
+    log.info("Zwycięzca: %s", report["zwyciezca"])
+    if save:
+        save_baseline(report)
+        log.info("Zapisano %s", BASELINE)
+        return 0
+    if not BASELINE.exists():
+        log.error("Brak pomiaru odniesienia — uruchom: cli search-eval --zapisz")
+        return 1
+    problems = compare_with_baseline(report, json.loads(BASELINE.read_text(encoding="utf-8")))
+    for problem in problems:
+        log.error("Trafność: %s", problem)
+    return 1 if problems else 0
+
+
 OPENAPI_CANDIDATES = ("openapi/", "openapi.json", "openapi/openapi.json", "openapi.yaml", "v3/api-docs")
 
 
@@ -205,6 +242,9 @@ def main(argv: list[str] | None = None) -> int:
     sync.add_argument("--replay", type=Path, help="katalog z nagraniami (eli-record) zamiast sieci")
     sub.add_parser("worker")
     sub.add_parser("reindex")
+    ev = sub.add_parser("search-eval")
+    ev.add_argument("--zapisz", action="store_true", help="zapisz wynik jako nowy pomiar odniesienia")
+    ev.add_argument("--przypadki", type=Path, help="zapisz zestaw testowy do pliku JSON")
     rec = sub.add_parser("eli-record")
     rec.add_argument("--out", type=Path, default=RECORDED_DIR)
     args = parser.parse_args(argv)
@@ -214,6 +254,8 @@ def main(argv: list[str] | None = None) -> int:
         _seed(args.manifest_only)
     elif args.cmd == "sync":
         return 0 if _sync("reczny", args.replay) == "sukces" else 1
+    elif args.cmd == "search-eval":
+        return _search_eval(args.zapisz, args.przypadki)
     elif args.cmd == "worker":
         _worker()
     elif args.cmd == "reindex":

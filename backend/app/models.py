@@ -571,6 +571,23 @@ class SearchDocument(Base):
     updated_at: Mapped[datetime] = _ts()
 
 
+class SearchMiss(Base):
+    """Zapytanie bez wyników (arkusz, działanie 5.4) — tylko znormalizowany tekst i licznik.
+
+    Bez adresu IP, czasu pojedynczego zapytania ani niczego, co wskazuje osobę; zapytań, które mogą
+    zawierać dane osobowe (adres e-mail, ciąg cyfr, długie zdania), nie zapisujemy wcale.
+    """
+
+    __tablename__ = "search_miss"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    query: Mapped[str] = mapped_column(String(80), unique=True)
+    count: Mapped[int] = mapped_column(Integer, default=1)
+    first_seen_on: Mapped[date] = mapped_column(Date)
+    last_seen_on: Mapped[date] = mapped_column(Date)
+    resolved: Mapped[str | None] = mapped_column(String(20))  # „synonim” albo „odrzucone”
+
+
 class SearchSynonym(Base):
     """Jawny słownik potocznych synonimów („płot” → ogrodzenie)."""
 

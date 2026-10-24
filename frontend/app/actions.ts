@@ -159,3 +159,29 @@ export async function editorTransitional(_prev: EditorState, formData: FormData)
   revalidatePath("/redakcja");
   return { ok: "Zapisano — karty aktu pokażą stosowanie przejściowe z tą podstawą." };
 }
+
+export async function editorAddSynonym(_prev: EditorState, formData: FormData): Promise<EditorState> {
+  const term = String(formData.get("term") ?? "").trim();
+  const expansions = String(formData.get("expansions") ?? "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  if (expansions.length === 0) return { error: "Wpisz słowa, których ma szukać wyszukiwarka, oddzielone przecinkami." };
+  try {
+    await editorialFetch(await token(), "/synonimy", {
+      method: "POST",
+      body: JSON.stringify({ term, expansions, miss_id: Number(formData.get("miss_id")) || null }),
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Nie udało się dodać synonimu." };
+  }
+  revalidatePath("/redakcja");
+  return { ok: `Dodano: „${term}” → ${expansions.join(", ")}.` };
+}
+
+export async function editorDismissMiss(formData: FormData): Promise<void> {
+  await editorialFetch(await token(), `/propozycje-synonimow/${encodeURIComponent(String(formData.get("miss_id")))}/odrzuc`, {
+    method: "POST",
+  });
+  revalidatePath("/redakcja");
+}

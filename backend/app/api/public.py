@@ -16,6 +16,7 @@ from app.modules.editorial.workflow import public_version
 from app.modules.freshness import service as fresh
 from app.modules.ops.status import status as ops_status
 from app.modules.reports.service import ReportError, create_report
+from app.modules.search.misses import record_miss
 from app.modules.search.service import search as run_search
 
 router = APIRouter(prefix="/api/v1", tags=["publiczne"])
@@ -120,6 +121,9 @@ def act(slug: str, s: Session = Depends(get_session)) -> o.ActOut:
 )
 def search(q: str = Query(min_length=1, max_length=200), s: Session = Depends(get_session)) -> o.SearchOut:
     r = run_search(s, q)
+    if not r.hits:
+        record_miss(s, q)  # tylko znormalizowane zapytanie i licznik — źródło propozycji synonimów
+        s.commit()
     return o.SearchOut(
         query=r.query,
         synonyms_used=r.synonyms_used,

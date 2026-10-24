@@ -6,10 +6,14 @@ tekstów po seedzie, synchronizacji i publikacji. Zapytanie przechodzi przez ten
 
 from __future__ import annotations
 
+import json
+import logging
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
 
-from sqlalchemy import delete, func, literal_column, select, text
+from sqlalchemy import String, cast, delete, func, literal_column, select, text
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -25,6 +29,33 @@ from app.models import (
 from app.modules.editorial.workflow import public_version
 from app.modules.freshness.service import current_text, unit_text
 from app.modules.search.stemmer import fold, stem, stems, tokens
+from app.modules.search.variants import (
+    HUNSPELL_CONFIG,
+    VARIANTS,
+    hunspell_available,
+    index_terms,
+    query_alternatives,
+)
+
+log = logging.getLogger("przepisy")
+# Wynik ostatniego pomiaru trafności (arkusz, 5.2): który wariant normalizacji wygrał.
+BASELINE = Path(__file__).with_name("trafnosc.json")
+
+
+def chosen_variant(s: Session) -> str:
+    """Wariant z ustawień (PB_SEARCH_VARIANT), inaczej zwycięzca pomiaru; Hunspell tylko, gdy serwer go ma."""
+    from app.config import get_settings
+
+    variant = get_settings().search_variant
+    if not variant and BASELINE.exists():
+        variant = json.loads(BASELINE.read_text(encoding="utf-8")).get("zwyciezca", "")
+    if variant not in VARIANTS:
+        variant = "stemmer"
+    if variant == "hunspell" and not hunspell_available(s):
+        log.warning("Wyszukiwarka: brak konfiguracji %s na serwerze — używam stemmera", HUNSPELL_CONFIG)
+        variant = "stemmer"
+    return variant
+
 
 STOPWORDS = {
     "a",
@@ -193,15 +224,25 @@ def _collect(s: Session) -> list[_Doc]:
     return docs
 
 
-def rebuild_index(s: Session) -> int:
+def document_tsv(variant: str, title: str, body: str) -> Any:
+    """tsvector dokumentu: tytuł z wagą A, treść z wagą C — w wybranym wariancie normalizacji."""
+    if variant == "hunspell":
+        cfg: Any = literal_column(f"'{HUNSPELL_CONFIG}'::regconfig")
+        title_v, body_v = func.to_tsvector(cfg, title), func.to_tsvector(cfg, body)
+    else:
+        title_v = func.to_tsvector(text("'simple'"), index_terms(variant, title))
+        body_v = func.to_tsvector(text("'simple'"), index_terms(variant, body))
+    return func.setweight(title_v, literal_column("'A'")).op("||")(
+        func.setweight(body_v, literal_column("'C'"))
+    )
+
+
+def rebuild_index(s: Session, variant: str | None = None) -> int:
+    variant = variant or chosen_variant(s)
     s.execute(delete(SearchDocument))
     docs = _collect(s)
     for d in docs:
-        title_stems = " ".join(stems(f"{d.title} {d.subtitle or ''}"))
-        body_stems = " ".join(stems(d.body))
-        tsv = func.setweight(func.to_tsvector(text("'simple'"), title_stems), literal_column("'A'")).op("||")(
-            func.setweight(func.to_tsvector(text("'simple'"), body_stems), literal_column("'C'"))
-        )
+        tsv = document_tsv(variant, f"{d.title} {d.subtitle or ''}", d.body)
         s.add(
             SearchDocument(
                 kind=d.kind, ref=d.ref, title=d.title, subtitle=d.subtitle, body=d.body, url=d.url, tsv=tsv
@@ -219,16 +260,24 @@ def _synonyms(s: Session) -> dict[str, SearchSynonym]:
     return {" ".join(stems(syn.term)): syn for syn in s.scalars(select(SearchSynonym))}
 
 
-def _alternatives(phrase: str) -> str:
-    parts = [f"{st}:*" for st in stems(phrase) if fold(st) not in STOPWORDS]
-    if not parts:
+def _alternatives(s: Session, variant: str, phrase: str) -> str:
+    if variant != "hunspell":
+        return query_alternatives(variant, phrase, STOPWORDS)
+    words = " ".join(w for w in phrase.split() if fold(w.lower()) not in STOPWORDS)
+    if not words:
         return ""
-    return parts[0] if len(parts) == 1 else "(" + " & ".join(parts) + ")"
+    cfg: Any = literal_column(f"'{HUNSPELL_CONFIG}'::regconfig")
+    found = s.scalar(select(cast(func.plainto_tsquery(cfg, words), String)))
+    return f"({found})" if found else ""
 
 
-def build_query(s: Session, q: str) -> tuple[list[str], list[dict[str, object]]]:
+def build_query(s: Session, q: str, variant: str = "stemmer") -> tuple[list[str], list[dict[str, object]]]:
     """Zwraca grupy tsquery (jedna na słowo zapytania, z synonimami) i listę użytych synonimów."""
-    toks = [t for t in tokens(q) if t not in STOPWORDS]
+    # Słowa w dwóch postaciach: znormalizowane (do synonimów) i oryginalne (lematyzacja i Hunspell
+    # potrzebują polskich znaków, jeśli użytkownik je wpisał).
+    pairs = [(t, w) for t, w in _pairs(q) if t not in STOPWORDS]
+    toks = [t for t, _ in pairs]
+    raw = [w for _, w in pairs]
     keys = [stem(t) for t in toks]
     syn = _synonyms(s)
     groups: list[str] = []
@@ -242,10 +291,10 @@ def build_query(s: Session, q: str) -> tuple[list[str], list[dict[str, object]]]
             term, span = syn[keys[i]], 1
         else:
             term, span = None, 1
-        own = " ".join(toks[i : i + span])
-        alts = [_alternatives(own)]
+        own = " ".join(raw[i : i + span])
+        alts = [_alternatives(s, variant, own)]
         if term is not None:
-            alts += [_alternatives(e) for e in term.expansions]
+            alts += [_alternatives(s, variant, e) for e in term.expansions]
             used.append({"slowo": term.term, "szukamy_tez": term.expansions})
         alts = [a for a in dict.fromkeys(alts) if a]
         if alts:
@@ -268,8 +317,18 @@ def _snippet(body: str, q_stems: set[str], limit: int = 220) -> str:
     return best if len(best) <= limit else best[: limit - 1].rsplit(" ", 1)[0] + "…"
 
 
-def search(s: Session, q: str, limit: int = 20) -> SearchResult:
-    groups, used = build_query(s, q)
+def _pairs(q: str) -> list[tuple[str, str]]:
+    """(token bez polskich znaków, słowo w oryginalnej pisowni) — w kolejności zapytania."""
+    out: list[tuple[str, str]] = []
+    for word in q.lower().split():
+        toks = tokens(word)
+        out.extend((tok, word if len(toks) == 1 else tok) for tok in toks)
+    return out
+
+
+def search(s: Session, q: str, limit: int = 20, variant: str | None = None) -> SearchResult:
+    variant = variant or chosen_variant(s)
+    groups, used = build_query(s, q, variant)
     if not groups:
         return SearchResult(query=q, hits=[], synonyms_used=used)
     all_words = True

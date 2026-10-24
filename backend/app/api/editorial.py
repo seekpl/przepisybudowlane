@@ -26,6 +26,8 @@ from app.models import (
     LegalTextVersion,
     LegalUnit,
     LegalValidityInterval,
+    SearchMiss,
+    SearchSynonym,
     SourceAlarm,
     TextReview,
     ValidityKind,
@@ -34,6 +36,7 @@ from app.modules.editorial.workflow import ENTITY_MODELS, WorkflowError, entity_
 from app.modules.freshness.service import current_text, unit_text
 from app.modules.ops.alarms import resolve_alarm
 from app.modules.reports.service import close_report
+from app.modules.search.misses import proposals
 from app.modules.search.service import rebuild_index
 from app.modules.sync.service import diff_units
 
@@ -552,3 +555,56 @@ def record_transitional(
         description=interval.description,
         recorded_by=interval.recorded_by,
     )
+
+
+# --- Propozycje synonimów z zapytań bez wyników (arkusz, działanie 5.4) ------------------------------
+
+
+class SynonymIn(BaseModel):
+    term: str = Field(min_length=2, max_length=80)
+    expansions: list[str] = Field(min_length=1, max_length=10)
+    miss_id: int | None = None
+
+
+@router.get("/propozycje-synonimow", summary="Zapytania bez wyników z podpowiedziami słów z indeksu")
+def synonym_proposals(
+    s: Session = Depends(get_session), _: Editor = Depends(current_editor)
+) -> list[dict[str, Any]]:
+    return proposals(s)
+
+
+@router.post("/synonimy", status_code=201, summary="Dodaj synonim do jawnego słownika wyszukiwarki")
+def add_synonym(
+    body: SynonymIn, s: Session = Depends(get_session), editor: Editor = Depends(current_editor)
+) -> dict[str, Any]:
+    term = " ".join(body.term.lower().split())
+    expansions = [e.strip() for e in body.expansions if e.strip()]
+    if not expansions:
+        raise HTTPException(422, "Podaj co najmniej jedno słowo, którego ma szukać wyszukiwarka.")
+    if s.scalar(select(SearchSynonym).where(SearchSynonym.term == term)) is not None:
+        raise HTTPException(409, "Ten synonim już jest w słowniku.")
+    syn = SearchSynonym(
+        term=term, expansions=expansions, note=f"Dodane przez {editor.name} z zapytań bez wyników"
+    )
+    s.add(syn)
+    if body.miss_id is not None and (miss := s.get(SearchMiss, body.miss_id)) is not None:
+        miss.resolved = "synonim"
+    s.flush()
+    record(s, actor=editor.name, entity="search_synonym", entity_id=syn.id, action="dodano", term=term)
+    s.commit()
+    return {"term": syn.term, "expansions": syn.expansions}
+
+
+@router.post(
+    "/propozycje-synonimow/{miss_id}/odrzuc", summary="Odrzuć propozycję (zapytanie nie potrzebuje synonimu)"
+)
+def dismiss_proposal(
+    miss_id: int, s: Session = Depends(get_session), editor: Editor = Depends(current_editor)
+) -> dict[str, Any]:
+    miss = s.get(SearchMiss, miss_id)
+    if miss is None:
+        raise HTTPException(404, "Nie ma takiej propozycji.")
+    miss.resolved = "odrzucone"
+    record(s, actor=editor.name, entity="search_miss", entity_id=miss.id, action="odrzucono")
+    s.commit()
+    return {"id": miss.id, "stan": miss.resolved}

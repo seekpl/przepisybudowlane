@@ -2,7 +2,8 @@
 # Aplikacja: http://localhost:3000 · API: http://localhost:8000/docs
 services:
   db:
-    image: postgres:16-alpine
+    # PostgreSQL 16 ze słownikiem Hunspell pl_PL dla wyszukiwarki (db/Dockerfile).
+    build: ./db
     environment:
       POSTGRES_DB: przepisy
       POSTGRES_USER: przepisy

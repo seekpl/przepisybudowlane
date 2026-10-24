@@ -71,6 +71,40 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
+  trafnosc:
+    name: Trafność wyszukiwania — trzy warianty, spadek blokuje scalenie
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      PB_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/przepisy
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL ze słownikiem Hunspell pl_PL (obraz db/)
+        working-directory: db
+        run: |
+          docker build -t pb-db .
+          docker run -d --name pb-db -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=przepisy pb-db
+          for i in $(seq 1 60); do
+            docker exec pb-db psql -U postgres -d przepisy -tAc "select 1 from pg_ts_config where cfgname = 'pl_hunspell'" 2>/dev/null | grep -q 1 && exit 0
+            sleep 2
+          done
+          docker logs pb-db; exit 1
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.32"
+          python-version: "3.13"
+      - run: uv sync --frozen --no-dev
+      - name: Baza jak na produkcji — tekst z nagrań ELI, potem treści
+        run: |
+          uv run python -m app.cli migrate
+          uv run python -m app.cli seed --manifest-only
+          uv run python -m app.cli sync --replay tests/fixtures/eli/recorded
+          uv run python -m app.cli seed
+      - name: Pomiar trafności i porównanie z trafnosc.json
+        run: uv run python -m app.cli search-eval
+
   e2e:
     name: E2E — przeglądarka, dostępność (axe), 375 px
     runs-on: ubuntu-latest

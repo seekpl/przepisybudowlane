@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     # Synchronizacja zaczyna od checkpointu cofniętego o ten zapas, żeby nie zgubić zmian z granicy okna.
     sync_overlap_hours: int = 24
     sync_interval_minutes: int = 60
+    # Wariant normalizacji wyszukiwarki: stemmer | lematyzacja | hunspell; pusty = zwycięzca pomiaru trafności.
+    search_variant: str = ""
     # Po synchronizacji dokończ treści startowe, które czekały na tekst z ELI (środowiska demonstracyjne).
     seed_after_sync: bool = False
     # Wynik parsera poniżej progu trafia do kontroli człowieka zamiast do publikacji.

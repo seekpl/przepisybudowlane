@@ -10,6 +10,7 @@ import {
   editorLogin,
   editorTransition,
   editorTransitional,
+  editorAddSynonym,
 } from "@/app/actions";
 import { Icon } from "@/components/ds/Icon";
 
@@ -192,6 +193,25 @@ export function TransitionalForm({ taskId, actSlug, since, basis }: { taskId: nu
       <button type="submit" className="pb-btn pb-btn-secondary pb-expert" disabled={pending}>
         <Icon name="check" />
         <span>Zapisz stosowanie przejściowe</span>
+      </button>
+      <Feedback state={res} />
+    </form>
+  );
+}
+
+export function SynonymForm({ missId, term, suggestions }: { missId: number; term: string; suggestions: string[] }) {
+  const [res, action, pending] = useActionState<EditorState, FormData>(editorAddSynonym, {});
+  return (
+    <form action={action} className="pb-stack-2">
+      <input type="hidden" name="miss_id" value={missId} />
+      <input type="hidden" name="term" value={term} />
+      <label className="ui-label" htmlFor={`syn-${missId}`}>
+        Szukaj też (oddziel przecinkami)
+      </label>
+      <input id={`syn-${missId}`} name="expansions" className="pb-input ui-small" defaultValue={suggestions.join(", ")} />
+      <button type="submit" className="pb-btn pb-btn-secondary pb-expert" disabled={pending}>
+        <Icon name="check" />
+        <span>Dodaj synonim</span>
       </button>
       <Feedback state={res} />
     </form>
